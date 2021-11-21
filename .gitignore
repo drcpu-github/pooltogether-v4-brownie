@@ -3,6 +3,12 @@ __pycache__
 .history
 .hypothesis/
 build/
-reports/
 contracts/
+events/
 interfaces/
+plots/
+reports/
+
+holders*
+options*
+prizes*

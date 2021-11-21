@@ -7,7 +7,7 @@ def print_prizes(prizes):
     for account, prizes in prizes.items():
         print(f"Account {account}")
         for prize in prizes:
-            print(f"\tDraw {prize['draw_id']}, number of claimable prizes: {len(prize['claimable_prizes'])}, total prize value: {round(prize['total_value_claimable'], 2)} USDC")
+            print(f"\tDraw {prize['draw_id']}, number of claimable prizes: {len(prize['claimable_prizes'])}, total prize value: {round(prize['total_value_claimable'] / 1E6, 2)} USDC")
 
             total_prize_value += prize["total_value_claimable"]
             for claimable in prize['claimable_prizes']:
@@ -17,9 +17,9 @@ def print_prizes(prizes):
 
     print("Claimable prize distribution:")
     for prize, amount in sorted(all_prizes.items()):
-        print(f"\t{round(prize, 2)} USDC: {amount}")
+        print(f"\t{round(prize / 1E6, 2)} USDC: {amount}")
 
-    print(f"Total prize amount: {total_prize_value} USDC")
+    print(f"Total prize amount: {total_prize_value / 1E6} USDC")
 
 def main():
     parser = optparse.OptionParser()

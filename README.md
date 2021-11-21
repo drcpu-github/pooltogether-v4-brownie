@@ -5,24 +5,72 @@ DISCLAIMER: Use of this set of scripts is at your own risk. I am in now way liab
 
 # Setup
 
-## Install ganache
+## Install dependencies to connect to the blockchains
 
-Install Ganache to use Brownie in combination with local deployments.
-
-```
-npm install -g ganache-cli
-```
-
-## Install dependencies
-
+Intall a couple of Python packages:
 ```
 python3 -m pip install --user pipx
 python3 -m pipx ensurepath
 pipx install eth-brownie
 pip3 install eth-abi
+pip3 install python-dotenv
+pip3 install web3
 ```
 
-## Clone PoolTogether contracts
+## Setting up brownie
+
+First setup a .env file exporting API keys for Alchemy or Infura. I use Alchemy and run a setup where I have different environment variables for connecting to the Ethereum and Polygon network separately: WEB3_ALCHEMY_ETHEREUM_PROJECT_ID and WEB3_ALCHEMY_POLYGON_PROJECT_ID.
+
+A fresh Brownie installation comes with preconfigured Infura networks. If you want to use Alchemy, you have to add them as below.
+
+```
+brownie networks list
+brownie networks add Ethereum mainnet-alchemy chainid=1 host='https://eth-mainnet.alchemyapi.io/v2/{WEB3_ALCHEMY_ETHEREUM_PROJECT_ID}' name='Mainnet (Alchemy)'
+brownie networks add Polygon polygon-mainnet-alchemy chainid=137 host='https://polygon-mainnet.g.alchemy.com/v2/${WEB3_ALCHEMY_POLYGON_PROJECT_ID}' name='Mainnet (Alchemy)'
+```
+
+## Setting up Postgres
+
+Installing the dependencies. Install psycopg2 both locally as well as in the virtualenv from which brownie runs.
+
+```
+apt-get install python3-psycopg2 postgresql postgresql-contrib libpq-dev
+pip3 install psycopg2
+/home/<user>/.local/pipx/venvs/eth-brownie/bin/python3 -m pip install psycopg2
+```
+
+Setting up and starting a cluster.
+
+```
+pg_createcluster <version (e.g., 10)> <clust name (e.g., main)> --start
+service postgresql start
+```
+
+Optionally add a new user (if you don't want to use the default postgres user).
+
+```
+sudo -i
+su postgres
+createuser <username>
+psql
+alter user <username> createdb;
+```
+
+Run following script to create the PoolTogether database. Note that it requires an options file.
+
+```
+python3 -m utils.create_database <--options options.json>
+```
+
+## Install ganache (optional)
+
+Install Ganache if you want to use Brownie in combination with local deployments.
+
+```
+npm install -g ganache-cli
+```
+
+## Clone PoolTogether contracts (optional)
 
 This is not technically necessary to run the scripts in this repository, but it's nice to have the contracts for future reference and you could deploy them on a local network to test new scripts.
 
@@ -36,7 +84,7 @@ rm -r contracts
 cd ..
 ```
 
-## Compile source
+## Compile source (optional)
 
 This step is only required if you want to deploy the contracts on a local network.
 
@@ -46,39 +94,22 @@ brownie compile
 
 # Scripts
 
+Below scripts can be used to read and process data from the blockchain. They require a JSON option file containing a couple of configuration variables. The `options.example.json` file contains all necessary configuration. You can remove the `.example` from the filename and edit the variables according to your local setup. You only need to edit the variables under `config`. For `draw_ids`, you can supply any array of draw ids. The `user`, `database` and `password` variables are required to connect to the locally setup database.
+
+## Fetching all depositors
+
+You can calculate all depositors by parsing and processing all events from the blockchain using following script. The `network` argument is required. The `clean` and `validate` arguments are optional. The former is used to force reindexing all events instead of using the locally saved ones. The latter can be used to validate the calculated holders with a holder file downloaded from an explorer. Of course, you could also just use the downloaded tokens holders from etherscan or polygonscan if you wish. Make sure the final depositor file is a JSON file following the format `{"address": balance_1, "address_2": balance_2, ..., "address_n": balance_n}`.
+
+```
+python3 -m scripts.get_depositors <--network ethereum | polygon> [--clean] [--validate]
+```
+
 ## Calculate prizes
 
-First setup a .env file exporting an API key for Alchemy or Infura. Call the environment variable WEB3_ALCHEMY_PROJECT_ID or WEB3_INFURA_PROJECT_ID.
-
-A fresh Brownie installation comes with preconfigured Infura networks. If you want to use Alchemy, you have to add them as below.
+The `calculate_prizes.py` script reads some configuration variables from the options JSON file. You can run either the ethereum or polygon version of the script by specifying the function to be executed and the the network to be used by running the following command:
 
 ```
-brownie networks list
-brownie networks add Ethereum mainnet-alchemy chainid=1 host='https://eth-mainnet.alchemyapi.io/v2/{WEB3_ALCHEMY_PROJECT_ID}' name='Mainnet (Alchemy)'
-brownie networks add Polygon polygon-mainnet-alchemy chainid=137 host='https://polygon-mainnet.g.alchemy.com/v2/${WEB3_ALCHEMY_PROJECT_ID}' name='Mainnet (Alchemy)'
-```
-
-The `calculate_prizes.py` script reads some configuration variables from an options JSON file. Sample JSON files have been included for Ethereum and Polygon where the prizes for all current holders for draws 1 to 16 are calculated. You can edit the `accounts` and `draw_ids` variables as you wish, there is no need to modify the contract addresses. You can run the script on a specific network using the following command:
-
-```
-brownie run scripts/calculate_prizes.py --network <network-name, e.g. polygon-mainnet-alchemy>
-```
-
-## Analyzing prizes
-
-The `pretty_print_prizes.py` script will use a JSON prizes file generated by the `calculate_prizes.py` script and print an overview of all prizes won by a set of accounts over the analyzed draws.
-
-```
-python3 scripts/pretty_print_prizes.py --json <prizes-file>
-```
-
-## Plotting prizes
-
-The `plot_prizes.py` script uses `matplotlib` to generate some basic plots for prizes that can be claimed by a set of accounts. Note that you need to have executed the `calculate_prizes.py` script first.
-
-```
-pip3 install matplotlib
-python3 scripts/plot_prizes.py --json <prizes-file>
+brownie run scripts/calculate_prizes.py <calculate_prizes_ethereum | calculate_prizes_polygon> --network <network-name (e.g. mainnet-alchemy | polygon-mainnet-alchemy)>
 ```
 
 ## Claim prizes
@@ -87,4 +118,12 @@ Assuming you have pre-calculated prizes for a(n) (set of) account(s) using the `
 
 ```
 brownie run scripts/claim_prizes.py --network <network-name, e.g. polygon-mainnet-alchemy>
+```
+
+## Other scripts
+
+In the `utils` directory are a set of scripts included which can be used to analyze the draw data. Note that these scripts assume you have the prize data saved in a database. All of these scripts can be executed as:
+
+```
+python3 -m utils.<script name> --options options.json
 ```

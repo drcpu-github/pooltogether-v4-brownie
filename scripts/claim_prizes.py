@@ -3,14 +3,28 @@ import time
 
 from brownie import accounts, config, Contract
 
-from draw_calculator.draw_calculator import DrawCalculator
+from classes.draw_calculator import DrawCalculator
 
-def main():
-    prizes = json.loads(open("prizes_polygon.json").read())
-    options = json.loads(open("options_polygon.json").read())
+def claim_prizes_ethereum():
+    print("Claiming prizes for the ethereum deposits")
+
+    options = json.loads(open("options.json").read())
+
+    claim_prizes(options, "ethereum")
+
+def claim_prizes_polygon():
+    print("Claiming prizes for the polygon deposits")
+
+    options = json.loads(open("options.json").read())
+
+    claim_prizes(options, "polygon")
+
+def claim_prizes(options, network):
+    options = json.loads(open("options.json").read())
+    prizes = json.loads(open("prizes_to_claim.json").read())
 
     abi_prize_distributor = json.loads(open("abis/PrizeDistributorAbi.json").read())
-    prize_distributor_contract = Contract.from_abi("PrizeDistributor", options["prize_distributor_address"], abi_prize_distributor)
+    prize_distributor_contract = Contract.from_abi("PrizeDistributor", options["contracts"][network]["prize_distributor_address"], abi_prize_distributor)
 
     draw_calculator = DrawCalculator()
 
