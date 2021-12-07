@@ -1,8 +1,8 @@
 {
     "config": {
         "draw_ids": [],
-        "user": "<username>",
-        "database": "<database name>",
+        "user": "<username, e.g. pooltogether>",
+        "database": "<database name, e.g. prizes>",
         "password": "<database password>",
         "holders": "holders.json"
     },

@@ -29,7 +29,7 @@ brownie networks add Ethereum mainnet-alchemy chainid=1 host='https://eth-mainne
 brownie networks add Polygon polygon-mainnet-alchemy chainid=137 host='https://polygon-mainnet.g.alchemy.com/v2/${WEB3_ALCHEMY_POLYGON_PROJECT_ID}' name='Mainnet (Alchemy)'
 ```
 
-## Setting up Postgres
+## Setting up PostgreSQL
 
 Installing the dependencies. Install psycopg2 both locally as well as in the virtualenv from which brownie runs.
 
@@ -127,3 +127,7 @@ In the `utils` directory are a set of scripts included which can be used to anal
 ```
 python3 -m utils.<script name> --options options.json
 ```
+
+## Data
+
+In the data directory, one can find CSV files for an `analyze_draws.py` run and a dump of the prizes database up to draw 52. You should be able to import the latter in your own database ([see the PostgreSQL manual](https://www.postgresql.org/docs/14/backup-dump.html)) if you do not want to calculate the prizes yourself as that can take quite some time. Note that depending on your local setup, you may need to change parts of the `database.sql` file, such as the database owner (which is `pooltogether` by default).
