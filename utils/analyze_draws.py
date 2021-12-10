@@ -32,34 +32,36 @@ def accumulate_per_draw(prizes):
     for prize in prizes:
         network, address, draw_id, claimable_prizes, claimable_picks, dropped_prizes, dropped_picks = prize
 
-        # Initialize claimable prizes dictionaries
-        if draw_id not in draws_claimable_prizes_amount:
-            draws_claimable_prizes[draw_id] = {}
-            draws_claimable_prizes_amount[draw_id] = 0
-        # Sum claimable prizes per prize category
-        for claimable_prize in claimable_prizes:
-            prize_amounts.add(claimable_prize)
-            if claimable_prize not in draws_claimable_prizes[draw_id]:
-                draws_claimable_prizes[draw_id][claimable_prize] = 0
-            draws_claimable_prizes[draw_id][claimable_prize] += 1
-        # Sum all claimable prizes to a single value
-        draws_claimable_prizes_amount[draw_id] += sum(claimable_prizes)
+        if claimable_prizes:
+            # Initialize claimable prizes dictionaries
+            if draw_id not in draws_claimable_prizes_amount:
+                draws_claimable_prizes[draw_id] = {}
+                draws_claimable_prizes_amount[draw_id] = 0
+            # Sum claimable prizes per prize category
+            for claimable_prize in claimable_prizes:
+                prize_amounts.add(claimable_prize)
+                if claimable_prize not in draws_claimable_prizes[draw_id]:
+                    draws_claimable_prizes[draw_id][claimable_prize] = 0
+                draws_claimable_prizes[draw_id][claimable_prize] += 1
+            # Sum all claimable prizes to a single value
+            draws_claimable_prizes_amount[draw_id] += sum(claimable_prizes)
 
-        # Initialize dropped prizes dictionaries
-        if draw_id not in draws_dropped_prizes:
-            draws_dropped_prizes[draw_id] = {}
-            draws_dropped_prizes_amount[draw_id] = 0
-            draws_dropped_addresses[draw_id] = 0
-        # Sum dropped prizes per prize category
-        for dropped_prize in dropped_prizes:
-            prize_amounts.add(dropped_prize)
-            if dropped_prize not in draws_dropped_prizes[draw_id]:
-                draws_dropped_prizes[draw_id][dropped_prize] = 0
-            draws_dropped_prizes[draw_id][dropped_prize] += 1
-        # Sum all dropped prizes to a single value
-        draws_dropped_prizes_amount[draw_id] += sum(dropped_prizes)
-        if sum(dropped_prizes) > 0:
-            draws_dropped_addresses[draw_id] += 1
+        if dropped_prizes:
+            # Initialize dropped prizes dictionaries
+            if draw_id not in draws_dropped_prizes:
+                draws_dropped_prizes[draw_id] = {}
+                draws_dropped_prizes_amount[draw_id] = 0
+                draws_dropped_addresses[draw_id] = 0
+            # Sum dropped prizes per prize category
+            for dropped_prize in dropped_prizes:
+                prize_amounts.add(dropped_prize)
+                if dropped_prize not in draws_dropped_prizes[draw_id]:
+                    draws_dropped_prizes[draw_id][dropped_prize] = 0
+                draws_dropped_prizes[draw_id][dropped_prize] += 1
+            # Sum all dropped prizes to a single value
+            draws_dropped_prizes_amount[draw_id] += sum(dropped_prizes)
+            if sum(dropped_prizes) > 0:
+                draws_dropped_addresses[draw_id] += 1
 
     return prize_amounts, draws_claimable_prizes, draws_claimable_prizes_amount, draws_dropped_prizes, draws_dropped_prizes_amount, draws_dropped_addresses
 
@@ -73,7 +75,10 @@ def find_unclaimed_prizes(prizes, claim_events):
         if draw_id not in prizes_dict[network]:
             prizes_dict[network][draw_id] = {}
         # Sum prizes per address
-        prizes_dict[network][draw_id][address] = round(sum(claimable_prizes) / 1E14)
+        if claimable_prizes:
+            prizes_dict[network][draw_id][address] = round(sum(claimable_prizes) / 1E14)
+        else:
+            prizes_dict[network][draw_id][address] = 0
 
     claimed_prizes = {}
     for network, claims in claim_events.items():
@@ -85,6 +90,7 @@ def find_unclaimed_prizes(prizes, claim_events):
                 claimed_prizes[draw_id] = []
             user = user[2:].lower()
             assert user in prizes_dict[network][draw_id], claim
+            assert prizes_dict[network][draw_id][user] - payout >= 0, (network, draw_id, user)
             prizes_dict[network][draw_id][user] -= payout
 
     draws_unclaimed_prizes = {}
@@ -94,6 +100,7 @@ def find_unclaimed_prizes(prizes, claim_events):
                 if draw not in draws_unclaimed_prizes:
                     draws_unclaimed_prizes[draw] = 0
                 draws_unclaimed_prizes[draw] += amount
+                assert draws_unclaimed_prizes[draw] >= 0, draw
 
     return draws_unclaimed_prizes
 
@@ -104,7 +111,7 @@ def unique_winners_per_draw(prizes):
         network, address, draw_id, claimable_prizes, claimable_picks, dropped_prizes, dropped_picks = prize
         if draw_id not in winners_per_draw:
             winners_per_draw[draw_id] = set()
-        if sum(claimable_prizes) > 0:
+        if claimable_prizes and sum(claimable_prizes) > 0:
             # Unique winners over all draws
             unique_winners.add(address)
             # Unique winners per draw

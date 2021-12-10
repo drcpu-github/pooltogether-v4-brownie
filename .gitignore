@@ -6,6 +6,7 @@ build/
 contracts/
 events/
 interfaces/
+logs/
 plots/
 reports/
 

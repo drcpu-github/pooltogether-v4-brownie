@@ -1,55 +1,43 @@
 import json
 import os
+import requests
 import sys
 import time
 
 from brownie import Contract
 
+from dotenv import load_dotenv
+
 from classes.database_manager import DatabaseManager
 from classes.draw_calculator import DrawCalculator
 from classes.helper import Helper
 
-def check_and_read_required_files():
-    if not os.path.exists("options.json"):
-        sys.stderr.write("Could not find options.json file!\n")
-        sys.exit(1)
-
-    options = json.loads(open("options.json").read())
-
-    if not os.path.exists(options["config"]["holders"]):
-        sys.stderr.write("Could not find holders.json file!\n")
-        sys.exit(2)
-
-    accounts = json.loads(open(options["config"]["holders"]).read())
-
-    return options, accounts
-
 def calculate_prizes_ethereum():
     print("Calculating prizes for the ethereum depositors")
-
-    options, accounts = check_and_read_required_files()
-    if "ethereum" not in accounts:
-        sys.stderr.write("Could not find ethereum holders in holders.json file!\n")
-        sys.exit(3)
-    accounts = accounts["ethereum"].keys()
-
-    calculate_prizes(accounts, "ethereum", options)
+    calculate_prizes("ethereum")
 
 def calculate_prizes_polygon():
     print("Calculating prizes for the polygon depositors")
+    calculate_prizes("polygon")
 
-    options, accounts = check_and_read_required_files()
-    if "polygon" not in accounts:
-        sys.stderr.write("Could not find polygon holders in holders.json file!\n")
-        sys.exit(3)
-    accounts = accounts["polygon"].keys()
+def calculate_prizes_avalanche():
+    print("Calculating prizes for the avalanche depositors")
+    calculate_prizes("avalanche")
 
-    calculate_prizes(accounts, "polygon", options)
+def calculate_prizes(network):
+    # Read options file
+    if not os.path.exists("options.json"):
+        sys.stderr.write("Could not find options.json file!\n")
+        sys.exit(1)
+    options = json.loads(open("options.json").read())
 
-def calculate_prizes(accounts, network, options):
+    load_dotenv()
+
+    helper = Helper()
+
     # Fetch oldest and newest available draw id
     abi_buffer = json.loads(open("abis/DrawBufferAbi.json").read())
-    draw_buffer_contract = Contract.from_abi("DrawBuffer", options["contracts"][network]["draw_buffer_address"], abi_buffer)
+    draw_buffer_contract = Contract.from_abi("DrawBuffer", options["contracts"][network]["draw_buffer"], abi_buffer)
 
     _, oldest_draw, _, _, _ = draw_buffer_contract.getOldestDraw()
     _, newest_draw, _, _, _ = draw_buffer_contract.getNewestDraw()
@@ -60,34 +48,38 @@ def calculate_prizes(accounts, network, options):
     # Otherwise calculate the specified ones
     else:
         draw_ids = options["config"]["draw_ids"]
-        assert oldest_draw <= draw_ids[0], f"Cannot fetch a draw older than {oldest_draw}"
-        assert newest_draw >= draw_ids[-1], f"Cannot fetch a draw younger than {newest_draw}"
 
-    helper = Helper()
-    draw_ids = helper.find_draws_to_calculate(options["config"], draw_ids, network)
+    draws_dict = helper.find_draws_to_calculate(options["config"], draw_ids, network)
+    draw_ids = list(draws_dict.keys())
 
     # If we already calculated all draw ids, stop
     if draw_ids == []:
         return
 
+    assert oldest_draw <= draw_ids[0], f"Cannot calculate prizes for a draw older than {oldest_draw}"
+    assert newest_draw >= draw_ids[-1], f"Cannot calculate prizes for a draw younger than {newest_draw}"
+
     print(f"Calculating prizes for draws {', '.join(str(draw_id) for draw_id in draw_ids)}")
 
-    # Fetch draw parameters
-    draws_dict = {}
-    draws = draw_buffer_contract.getDraws(draw_ids)
-    for draw in draws:
-        winning_random_number, draw_id, timestamp, beacon_period_started_at, beacon_period_seconds = draw
-        draws_dict[draw_id] = {
-            "winning_random_number": winning_random_number,
-            "draw_id": draw_id,
-            "timestamp": timestamp,
-            "beacon_period_started_at": beacon_period_started_at,
-            "beacon_period_seconds": beacon_period_seconds,
-        }
+    all_accounts = set()
+    for draw_id in draw_ids:
+        if not os.path.exists(f"balances/holders_draw-{draw_id}.json"):
+            sys.stderr.write(f"Could not find balances/holders_draw-{draw_id}.json file!\n")
+            sys.exit(2)
+
+        holders = json.loads(open(f"balances/holders_draw-{draw_id}.json").read())
+        if network not in holders["balances"] or network not in holders["delegations"]:
+            sys.stderr.write(f"Could not find {network} holders in balances/holders_draw-{draw_id}.json file!\n")
+            sys.exit(3)
+        accounts = list(holders["balances"][network].keys())
+        accounts.extend(holders["delegations"][network])
+
+        all_accounts.update(accounts)
+    all_accounts = list(all_accounts)
 
     # Fetch prize distributions
     abi_prize_distribution_buffer = json.loads(open("abis/PrizeDistributionBufferAbi.json").read())
-    prize_distribution_buffer_contract = Contract.from_abi("PrizeDistributionBuffer", options["contracts"][network]["prize_distribution_buffer_address"], abi_prize_distribution_buffer)
+    prize_distribution_buffer_contract = Contract.from_abi("PrizeDistributionBuffer", options["contracts"][network]["prize_distribution_buffer"], abi_prize_distribution_buffer)
 
     prize_distributions_dict = {}
     prize_distributions = prize_distribution_buffer_contract.getPrizeDistributions(draw_ids)
@@ -107,11 +99,11 @@ def calculate_prizes(accounts, network, options):
 
     # Fetch normalized balances
     abi_calculator = json.loads(open("abis/DrawCalculatorAbi.json").read())
-    draw_calculator_contract = Contract.from_abi("DrawCalculator", options["contracts"][network]["draw_calculator_address"], abi_calculator)
+    draw_calculator_contract = Contract.from_abi("DrawCalculator", options["contracts"][network]["draw_calculator"], abi_calculator)
 
     normalized_balances_dict = {}
-    for i, account in enumerate(accounts):
-        print(f"Fetching normalized balances for account {account} ({i + 1} / {len(accounts)})")
+    for i, account in enumerate(all_accounts):
+        print(f"Fetching normalized balances for account {account} ({i + 1} / {len(all_accounts)})")
 
         normalized_balances_dict[account] = {}
         normalized_balances = draw_calculator_contract.getNormalizedBalancesForDrawIds(account, draw_ids)
@@ -122,8 +114,8 @@ def calculate_prizes(accounts, network, options):
     draw_calculator = DrawCalculator()
 
     prizes_dict = {}
-    for i, account in enumerate(accounts):
-        print(f"Calculating picks for account {account} ({i + 1} / {len(accounts)})")
+    for i, account in enumerate(all_accounts):
+        print(f"Calculating picks for account {account} ({i + 1} / {len(all_accounts)})")
 
         prizes_dict[account] = []
         for draw_id in draw_ids:
@@ -135,8 +127,6 @@ def calculate_prizes(accounts, network, options):
             )
             prizes_dict[account].append(results)
 
-    # Insert draws in database
-    helper.insert_draws(options["config"], network, draws_dict)
     # Insert prize distributions in database
     helper.insert_prize_distributions(options["config"], network, prize_distributions_dict)
     # Insert prizes in database

@@ -25,6 +25,7 @@ def create_tables(db_mngr):
                 network VARCHAR(16) NOT NULL,
                 winning_random_number NUMERIC(78, 0) NOT NULL,
                 timestamp BIGINT NOT NULL,
+                block_number BIGINT,
                 beacon_period_started_at BIGINT NOT NULL,
                 beacon_period_seconds INT NOT NULL,
                 CONSTRAINT pk_draws PRIMARY KEY (draw_id, network)
@@ -49,10 +50,10 @@ def create_tables(db_mngr):
                 network VARCHAR(16) NOT NULL,
                 address BYTEA NOT NULL,
                 draw_id INT NOT NULL,
-                claimable_prizes BIGINT ARRAY NOT NULL,
-                claimable_picks INT ARRAY NOT NULL,
-                dropped_prizes BIGINT ARRAY NOT NULL,
-                dropped_picks INT ARRAY NOT NULL,
+                claimable_prizes BIGINT ARRAY,
+                claimable_picks INT ARRAY,
+                dropped_prizes BIGINT ARRAY,
+                dropped_picks INT ARRAY,
                 normalized_balance BIGINT NOT NULL,
                 CONSTRAINT pk_prizes PRIMARY KEY (network, address, draw_id)
             );""",

@@ -16,17 +16,21 @@ pip3 install eth-abi
 pip3 install python-dotenv
 pip3 install web3
 ```
+## Setting up the environment variables
+
+First setup a .env file. This file should include exports for Alchemy or Infura API keys and API keys for Etherscan, Polygonscan and Snowtrace.
+
+I use Alchemy and run a setup where I have different environment variables for connecting to the Ethereum and Polygon network separately: WEB3_ALCHEMY_ETHEREUM_PROJECT_ID and WEB3_ALCHEMY_POLYGON_PROJECT_ID. I also added ETHERSCAN_API_KEY, POLYGONSCAN_API_KEY and POLYGONSCAN_API_KEY variables.
 
 ## Setting up brownie
 
-First setup a .env file exporting API keys for Alchemy or Infura. I use Alchemy and run a setup where I have different environment variables for connecting to the Ethereum and Polygon network separately: WEB3_ALCHEMY_ETHEREUM_PROJECT_ID and WEB3_ALCHEMY_POLYGON_PROJECT_ID.
-
-A fresh Brownie installation comes with preconfigured Infura networks. If you want to use Alchemy, you have to add them as below.
+A fresh Brownie installation comes with preconfigured Infura networks. If you want to use Alchemy as a web3 provider or want to calculate prizes for the Avalanche network, you have to add them as below.
 
 ```
 brownie networks list
 brownie networks add Ethereum mainnet-alchemy chainid=1 host='https://eth-mainnet.alchemyapi.io/v2/{WEB3_ALCHEMY_ETHEREUM_PROJECT_ID}' name='Mainnet (Alchemy)'
 brownie networks add Polygon polygon-mainnet-alchemy chainid=137 host='https://polygon-mainnet.g.alchemy.com/v2/${WEB3_ALCHEMY_POLYGON_PROJECT_ID}' name='Mainnet (Alchemy)'
+brownie networks add Avalanche avalanche-mainnet chainid=43114 host='https://api.avax.network/ext/bc/C/rpc' name='Mainnet'
 ```
 
 ## Setting up PostgreSQL
