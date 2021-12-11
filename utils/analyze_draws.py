@@ -1,7 +1,14 @@
 import json
 import optparse
+import pickle
 
 from classes.database_manager import DatabaseManager
+
+def read_claim_events(networks):
+    events = {}
+    for network in networks:
+        events[network] = pickle.load(open(f"events/claimeddraw_{network}.bin", "rb"))
+    return events
 
 def fetch_all_data(db_mngr):
     sql = """
@@ -56,6 +63,40 @@ def accumulate_per_draw(prizes):
 
     return prize_amounts, draws_claimable_prizes, draws_claimable_prizes_amount, draws_dropped_prizes, draws_dropped_prizes_amount, draws_dropped_addresses
 
+def find_unclaimed_prizes(prizes, claim_events):
+    prizes_dict = {}
+    for prize in prizes:
+        network, address, draw_id, claimable_prizes, claimable_picks, dropped_prizes, dropped_picks = prize
+        address = address.hex()
+        if network not in prizes_dict:
+            prizes_dict[network] = {}
+        if draw_id not in prizes_dict[network]:
+            prizes_dict[network][draw_id] = {}
+        # Sum prizes per address
+        prizes_dict[network][draw_id][address] = round(sum(claimable_prizes) / 1E14)
+
+    claimed_prizes = {}
+    for network, claims in claim_events.items():
+        for claim in claims:
+            user = claim["args"]["user"]
+            draw_id = claim["args"]["drawId"]
+            payout = round(claim["args"]["payout"] / 1E6)
+            if draw_id not in claimed_prizes:
+                claimed_prizes[draw_id] = []
+            user = user[2:].lower()
+            assert user in prizes_dict[network][draw_id], claim
+            prizes_dict[network][draw_id][user] -= payout
+
+    draws_unclaimed_prizes = {}
+    for network, draws in prizes_dict.items():
+        for draw, users in draws.items():
+            for user, amount in users.items():
+                if draw not in draws_unclaimed_prizes:
+                    draws_unclaimed_prizes[draw] = 0
+                draws_unclaimed_prizes[draw] += amount
+
+    return draws_unclaimed_prizes
+
 def unique_winners_per_draw(prizes):
     winners_per_draw = {}
     unique_winners = set()
@@ -75,40 +116,48 @@ def unique_winners_per_draw(prizes):
 
     return winners_per_draw, len(unique_winners)
 
-def print_amount_data(draws_claimable_prizes_amount, draws_dropped_prizes_amount, draws_dropped_addresses, winners_per_draw, unique_winners):
+def print_amount_data(draws_claimable_prizes_amount, draws_unclaimed_prizes_amount, draws_dropped_prizes_amount, draws_dropped_addresses, winners_per_draw, unique_winners):
     f = open("data/draw_amounts.csv", "w+")
 
     draw_ids = list(draws_claimable_prizes_amount.keys())
 
     # Print amount statistics per draw
     f.write("Draw,Claimable prize amount,Dropped prize amount,Dropped users,Total amount,Winners\n")
-    print(f"{'Draw':^8}|{'Claimable prize amount':^25}|{'Dropped prize amount':^25}|{'Dropped users':^16}|{'Total amount':^16}|{'Winners':^12}")
-    print("--------+-------------------------+-------------------------+----------------+----------------+----------")
+    print(f"{'Draw':^8}|{'Claimable prize amount':^25}|{'Unclaimed prize amount':^25}|{'Dropped prize amount':^25}|{'Total amount':^16}|{'Total unclaimed amount':^25}|{'Winners':^12}|{'Users dropped prizes':^25}")
+    print("--------+-------------------------+-------------------------+-------------------------+----------------+-------------------------+------------+-------------------------")
     for draw_id in sorted(draw_ids):
         # Round claimable prizes amount to USDC
         draw_claimable_prizes_amount = round(draws_claimable_prizes_amount[draw_id] / 1E14)
+        # Unclaimed prizes, already rounded to USDC
+        draw_unclaimed_prizes_amount = draws_unclaimed_prizes_amount[draw_id]
         # Round dropped prizes amount to USDC
         draw_dropped_prizes_amount = round(draws_dropped_prizes_amount[draw_id] / 1E14)
         # Sum prizes amount to USDC
         total_prizes_amount = draw_claimable_prizes_amount + draw_dropped_prizes_amount
+        # Sum unclaimed prizes amount to USDC
+        total_unclaimed_prizes_amount = draw_unclaimed_prizes_amount + draw_dropped_prizes_amount
         # Fetch dropped addresses
         dropped_users = draws_dropped_addresses[draw_id]
         # Fetch unique winners
         winners = winners_per_draw[draw_id]
-        f.write(f"{draw_id},{draw_claimable_prizes_amount},{draw_dropped_prizes_amount},{dropped_users},{total_prizes_amount},{winners}\n")
-        print(f"{draw_id:^8}|{draw_claimable_prizes_amount:^25}|{draw_dropped_prizes_amount:^25}|{dropped_users:^16}|{total_prizes_amount:^16}|{winners:^12}")
-    print("--------+-------------------------+-------------------------+----------------+----------------+----------")
+        f.write(f"{draw_id},{draw_claimable_prizes_amount},{draw_unclaimed_prizes_amount},{draw_dropped_prizes_amount},{total_prizes_amount},{total_unclaimed_prizes_amount},{winners},{dropped_users}\n")
+        print(f"{draw_id:^8}|{draw_claimable_prizes_amount:^25}|{draw_unclaimed_prizes_amount:^25}|{draw_dropped_prizes_amount:^25}|{total_prizes_amount:^16}|{total_unclaimed_prizes_amount:^25}|{winners:^12}|{dropped_users:^25}")
+    print("--------+-------------------------+-------------------------+-------------------------+----------------+-------------------------+------------+-------------------------")
 
     # Round claimable prizes amount to USDC
     total_claimable_prizes_amount = round(sum(draws_claimable_prizes_amount.values()) / 1E14)
+    # Unclaimed prizes, already rounded to USDC
+    total_unclaimed_prizes_amount = sum(draws_unclaimed_prizes_amount.values())
     # Round dropped prizes amount to USDC
     total_dropped_prizes_amount = round(sum(draws_dropped_prizes_amount.values()) / 1E14)
     # Sum prizes amount to USDC
     total_prizes_amount = total_claimable_prizes_amount + total_dropped_prizes_amount
+    # Sum prizes unclaimed amount to USDC
+    total_prizes_unclaimed_amount = total_unclaimed_prizes_amount + total_dropped_prizes_amount
     # Sum dropped addresses
     total_dropped_users = sum(draws_dropped_addresses.values())
-    f.write(f"total,{total_claimable_prizes_amount},{total_dropped_prizes_amount},{total_dropped_users},{total_prizes_amount},{unique_winners}\n")
-    print(f"{'Total':^8}|{total_claimable_prizes_amount:^25}|{total_dropped_prizes_amount:^25}|{total_dropped_users:^16}|{total_prizes_amount:^16}|{unique_winners:^12}")
+    f.write(f"total,{total_claimable_prizes_amount},{total_unclaimed_prizes_amount},{total_dropped_prizes_amount},{total_prizes_amount},{total_prizes_unclaimed_amount},{unique_winners},{total_dropped_users}\n")
+    print(f"{'Total':^8}|{total_claimable_prizes_amount:^25}|{total_unclaimed_prizes_amount:^25}|{total_dropped_prizes_amount:^25}|{total_prizes_amount:^16}|{total_prizes_unclaimed_amount:^25}|{unique_winners:^12}|{total_dropped_users:^25}")
 
     f.write("\n")
     print("")
@@ -176,12 +225,16 @@ def main():
 
     db_mngr = DatabaseManager(json_options["config"]["user"], json_options["config"]["database"], json_options["config"]["password"])
 
+    networks = list(json_options["contracts"].keys())
+    claim_events = read_claim_events(networks)
+
     prizes = fetch_all_data(db_mngr)
 
     prize_amounts, draws_claimable_prizes, draws_claimable_prizes_amount, draws_dropped_prizes, draws_dropped_prizes_amount, draws_dropped_addresses = accumulate_per_draw(prizes)
+    draws_unclaimed_prizes_amount = find_unclaimed_prizes(prizes, claim_events)
     winners_per_draw, unique_winners = unique_winners_per_draw(prizes)
 
-    print_amount_data(draws_claimable_prizes_amount, draws_dropped_prizes_amount, draws_dropped_addresses, winners_per_draw, unique_winners)
+    print_amount_data(draws_claimable_prizes_amount, draws_unclaimed_prizes_amount, draws_dropped_prizes_amount, draws_dropped_addresses, winners_per_draw, unique_winners)
     print_per_prize_data(prize_amounts, draws_claimable_prizes, "claimable")
     print_per_prize_data(prize_amounts, draws_dropped_prizes, "dropped")
 
