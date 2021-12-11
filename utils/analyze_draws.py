@@ -122,7 +122,7 @@ def print_amount_data(draws_claimable_prizes_amount, draws_unclaimed_prizes_amou
     draw_ids = list(draws_claimable_prizes_amount.keys())
 
     # Print amount statistics per draw
-    f.write("Draw,Claimable prize amount,Dropped prize amount,Dropped users,Total amount,Winners\n")
+    f.write("Draw,Claimable prize amount,Unclaimed prize amount,Dropped prize amount,Total amount,Total unclaimed amount,Winners,Users dropped prizes\n")
     print(f"{'Draw':^8}|{'Claimable prize amount':^25}|{'Unclaimed prize amount':^25}|{'Dropped prize amount':^25}|{'Total amount':^16}|{'Total unclaimed amount':^25}|{'Winners':^12}|{'Users dropped prizes':^25}")
     print("--------+-------------------------+-------------------------+-------------------------+----------------+-------------------------+------------+-------------------------")
     for draw_id in sorted(draw_ids):

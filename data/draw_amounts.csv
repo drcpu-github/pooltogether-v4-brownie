@@ -1,4 +1,4 @@
-Draw,Claimable prize amount,Dropped prize amount,Dropped users,Total amount,Winners
+Draw,Claimable prize amount,Unclaimed prize amount,Dropped prize amount,Total amount,Total unclaimed amount,Winners,Users dropped prizes
 1,9140,7050,7170,16310,14220,115,43
 2,13470,4810,7290,20760,12100,145,57
 3,5580,2410,7590,13170,10000,164,62
