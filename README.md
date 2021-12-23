@@ -9,6 +9,7 @@ DISCLAIMER: Use of this set of scripts is at your own risk. I am in now way liab
 
 Intall a couple of Python packages:
 ```
+apt-get install python3-venv
 python3 -m pip install --user pipx
 python3 -m pipx ensurepath
 pipx install eth-brownie
