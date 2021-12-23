@@ -29,7 +29,7 @@ A fresh Brownie installation comes with preconfigured Infura networks. If you wa
 
 ```
 brownie networks list
-brownie networks add Ethereum mainnet-alchemy chainid=1 host='https://eth-mainnet.alchemyapi.io/v2/{WEB3_ALCHEMY_ETHEREUM_PROJECT_ID}' name='Mainnet (Alchemy)'
+brownie networks add Ethereum mainnet-alchemy chainid=1 host='https://eth-mainnet.alchemyapi.io/v2/${WEB3_ALCHEMY_ETHEREUM_PROJECT_ID}' name='Mainnet (Alchemy)'
 brownie networks add Polygon polygon-mainnet-alchemy chainid=137 host='https://polygon-mainnet.g.alchemy.com/v2/${WEB3_ALCHEMY_POLYGON_PROJECT_ID}' name='Mainnet (Alchemy)'
 brownie networks add Avalanche avalanche-mainnet chainid=43114 host='https://api.avax.network/ext/bc/C/rpc' name='Mainnet'
 ```
