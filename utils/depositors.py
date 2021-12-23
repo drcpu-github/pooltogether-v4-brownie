@@ -282,6 +282,9 @@ def main():
         sys.stderr.write("Need either '--timestamp <YY-MM-DDTHH:MM:SS>' or '--draws' supplied on the command line")
         sys.exit(1)
 
+    if not os.path.exists("balances"):
+        os.mkdir("balances")
+
     load_dotenv()
 
     json_options = json.loads(open(options.options).read())
