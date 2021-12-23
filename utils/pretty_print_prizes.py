@@ -26,7 +26,7 @@ def print_prizes(prizes):
         print(f"Account {account}")
         for prize in sorted(prizes, key=lambda l: l[1]):
             if prize[2]:
-                print(f"\tDraw {prize[1]}, number of claimable prizes: {len(prize[2])}, total prize value: {round(sum(prize[2]) / 1E14, 2)} USDC")
+                print(f"\tDraw {prize[1]} on network {prize[0]}: {len(prize[2])} claimable prizes, total value: {round(sum(prize[2]) / 1E14)} USDC -- {len(prize[3])} dropped prizes, total value: {round(sum(prize[3]) / 1E14)} USDC", )
 
                 total_prize_value += (sum(prize[2]) / 1E14)
 
