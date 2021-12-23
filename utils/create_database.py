@@ -4,21 +4,6 @@ import optparse
 from classes.database_manager import DatabaseManager
 
 def create_tables(db_mngr):
-        types = [
-                """DO $$
-                    BEGIN
-                        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'prize') THEN
-                            CREATE TYPE prize AS (
-                                amount BIGINT,
-                                distribution_index SMALLINT,
-                                pick INT
-                            );
-                        END IF;
-                    END
-                $$;
-                COMMIT;""",
-        ]
-
         tables = [
             """CREATE TABLE IF NOT EXISTS draws (
                 draw_id INT NOT NULL,
@@ -58,9 +43,6 @@ def create_tables(db_mngr):
                 CONSTRAINT pk_prizes PRIMARY KEY (network, address, draw_id)
             );""",
         ]
-
-        db_mngr.execute_create_statements(types)
-        db_mngr.register_type("prize")
 
         db_mngr.execute_create_statements(tables)
 
