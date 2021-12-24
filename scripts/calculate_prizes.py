@@ -12,18 +12,20 @@ from classes.draw_calculator import DrawCalculator
 from classes.helper import Helper
 
 def calculate_prizes_ethereum():
-    print("Calculating prizes for the ethereum depositors")
+    print("Calculating prizes for the Ethereum depositors")
     calculate_prizes("ethereum")
 
 def calculate_prizes_polygon():
-    print("Calculating prizes for the polygon depositors")
+    print("Calculating prizes for the Polygon depositors")
     calculate_prizes("polygon")
 
 def calculate_prizes_avalanche():
-    print("Calculating prizes for the avalanche depositors")
+    print("Calculating prizes for the Avalanche depositors")
     calculate_prizes("avalanche")
 
 def calculate_prizes(network):
+    start = time.perf_counter()
+
     # Read options file
     if not os.path.exists("options.json"):
         sys.stderr.write("Could not find options.json file!\n")
@@ -130,3 +132,5 @@ def calculate_prizes(network):
     helper.insert_prize_distributions(options["config"], network, prize_distributions_dict)
     # Insert prizes in database
     helper.insert_prizes(options["config"], network, prizes_dict)
+
+    print(f"Calculating prizes for {network} took {time.perf_counter() - start} seconds")

@@ -25,6 +25,8 @@ def get_draws_avalanche():
     get_draws("avalanche")
 
 def get_draws(network):
+    start = time.perf_counter()
+
     # Read options file
     if not os.path.exists("options.json"):
         sys.stderr.write("Could not find options.json file!\n")
@@ -76,3 +78,5 @@ def get_draws(network):
 
     # Insert draws in database
     helper.insert_draws(options["config"], draws_lst)
+
+    print(f"Getting draws for {network} took {time.perf_counter() - start} seconds")
