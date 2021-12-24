@@ -1,10 +1,18 @@
 import math
+import os
+import pickle
 import sys
 
 from web3 import Web3
 from eth_abi import encode_abi
 
 class DrawCalculator:
+    def __init__(self, network):
+        if not os.path.exists("picks"):
+            os.mkdir("picks")
+
+        self.network = network
+
     def calculate_number_of_picks_for_user(self, prize_distribution, normalized_balance):
         number_of_picks_for_draw = prize_distribution["number_of_picks"]
         return int(math.ceil(number_of_picks_for_draw * normalized_balance / Web3.toWei(1, "ether")))
@@ -22,9 +30,20 @@ class DrawCalculator:
         number_of_picks = self.calculate_number_of_picks_for_user(prize_distribution, normalized_balance)
         user_address_hashed = Web3.solidityKeccak(["address"], [checksum_address])
 
-        picks = []
-        for pick_index in range(0, number_of_picks):
-            picks.append(self.compute_pick(user_address_hashed, pick_index))
+        if os.path.exists(f"picks/{self.network}_{address}.bin"):
+            picks = pickle.load(open(f"picks/{self.network}_{address}.bin", "rb"))
+        else:
+            picks = []
+
+        if number_of_picks != len(picks):
+            if len(picks) < number_of_picks:
+                for pick_index in range(len(picks), number_of_picks):
+                    picks.append(self.compute_pick(user_address_hashed, pick_index))
+                pickle.dump(picks, open(f"picks/{self.network}_{address}.bin", "wb+"))
+            else:
+                picks = picks[:number_of_picks]
+
+        assert len(picks) == number_of_picks
 
         return picks
 

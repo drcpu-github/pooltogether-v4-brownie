@@ -1,6 +1,5 @@
 import json
 import os
-import requests
 import sys
 import time
 
@@ -111,7 +110,7 @@ def calculate_prizes(network):
             normalized_balances_dict[account][draw_id] = normalized_balance
 
     # Calculate picks and prizes
-    draw_calculator = DrawCalculator()
+    draw_calculator = DrawCalculator(network)
 
     prizes_dict = {}
     for i, account in enumerate(all_accounts):
