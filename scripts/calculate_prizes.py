@@ -133,4 +133,8 @@ def calculate_prizes(network):
     # Insert prizes in database
     helper.insert_prizes(options["config"], network, prizes_dict)
 
+    f = open(".draws_calculated", "a+")
+    f.write(f"{network}: {', '.join(str(draw_id) for draw_id in draw_ids)}\n")
+    f.close()
+
     print(f"Calculating prizes for {network} took {time.perf_counter() - start} seconds")

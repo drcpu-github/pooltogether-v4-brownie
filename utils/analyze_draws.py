@@ -1,5 +1,4 @@
 import json
-import optparse
 import pickle
 
 from classes.database_manager import DatabaseManager
@@ -224,15 +223,11 @@ def print_per_prize_data(prize_amounts, prizes, key):
     f.close()
 
 def main():
-    parser = optparse.OptionParser()
-    parser.add_option("--options", type="string", dest="options")
-    options, args = parser.parse_args()
+    options = json.loads(open("options.json").read())
 
-    json_options = json.loads(open(options.options).read())
+    db_mngr = DatabaseManager(options["config"]["user"], options["config"]["database"], options["config"]["password"])
 
-    db_mngr = DatabaseManager(json_options["config"]["user"], json_options["config"]["database"], json_options["config"]["password"])
-
-    networks = list(json_options["contracts"].keys())
+    networks = list(options["contracts"].keys())
     claim_events = read_claim_events(networks)
 
     prizes = fetch_all_data(db_mngr)

@@ -131,7 +131,7 @@ def get_blocks_for_draws(w3_provider, options, network):
 
     return draw_ids, block_numbers
 
-def get_historical_balances(block_number, events, options, all_block_numbers=None):
+def get_historical_balances(block_number, events, contracts, all_block_numbers=None):
     print(f"Processing events up to block {block_number}")
 
     warn_events_outdated = True
@@ -150,7 +150,7 @@ def get_historical_balances(block_number, events, options, all_block_numbers=Non
         amount = deposit["args"]["amount"]
 
         # Ignore deposit to the PrizeDistributor contract
-        if holder == options["prize_distributor"]:
+        if holder == contracts["prize_distributor"]:
             continue
 
         # Update balance
@@ -180,11 +180,11 @@ def get_historical_balances(block_number, events, options, all_block_numbers=Non
             continue
 
         # Claims, process these as separate events
-        if "from" in transfer["args"] and transfer["args"]["from"] == options["prize_distributor"]:
+        if "from" in transfer["args"] and transfer["args"]["from"] == contracts["prize_distributor"]:
             continue
 
         # Ignore transfers from the Reserve contract
-        if "from" in transfer["args"] and transfer["args"]["from"] == options["reserve"]:
+        if "from" in transfer["args"] and transfer["args"]["from"] == contracts["reserve"]:
             continue
 
         # Actual ticket transfers
@@ -273,7 +273,6 @@ def get_historical_balances(block_number, events, options, all_block_numbers=Non
 
 def main():
     parser = optparse.OptionParser()
-    parser.add_option("--options", type="string", dest="options")
     parser.add_option("--timestamp", type="string", dest="timestamp")
     parser.add_option("--draws", action="store_true", dest="draws")
     options, args = parser.parse_args()
@@ -287,7 +286,7 @@ def main():
 
     load_dotenv()
 
-    json_options = json.loads(open(options.options).read())
+    json_options = json.loads(open("options.json").read())
     networks = list(json_options["contracts"].keys())
 
     helper = Helper()
@@ -302,7 +301,7 @@ def main():
     if options.timestamp:
         blocks_numbers = {}
         for network in networks:
-            first_block_number = options["contracts"][network]["first_block_number"]
+            first_block_number = json_options["contracts"][network]["first_block_number"]
             block_number = helper.do_eth_block_request(network, options.timestamp)
 
         print(f"Creating historical balances for {options.timestamp}")
@@ -318,7 +317,7 @@ def main():
                 historical_balance, delegations = get_historical_balances(
                     blocks_numbers[network],
                     events[network],
-                    json_options["contracts"][network],
+                    options["contracts"][network],
                 )
                 balances["balances"][network] = historical_balance
                 balances["balances"][network] = list(delegations.values())

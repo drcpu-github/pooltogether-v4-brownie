@@ -1,5 +1,4 @@
 import json
-import optparse
 import os
 import pickle
 import time
@@ -70,26 +69,22 @@ def get_contracts(w3_provider, options):
     return yield_source_prize_pool_contract, ticket_contract, prize_distributor_contract, draw_calculator_timelock_contract
 
 def main():
-    parser = optparse.OptionParser()
-    parser.add_option("--options", type="string", dest="options")
-    options, args = parser.parse_args()
-
     if not os.path.exists("events"):
         os.mkdir("events")
 
     load_dotenv()
 
-    json_options = json.loads(open(options.options).read())
+    options = json.loads(open("options.json").read())
 
     helper = Helper()
 
-    networks = list(json_options["contracts"].keys())
+    networks = list(options["contracts"].keys())
     for network in networks:
         print(f"Fetching events for {network}")
 
         provider = helper.setup_web3_provider(network)
 
-        contract_details = json_options["contracts"][network]
+        contract_details = options["contracts"][network]
 
         # Fetch block boundaries
         first_block_number, last_block_number = get_block_boundaries(contract_details, provider)
