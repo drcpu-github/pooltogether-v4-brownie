@@ -35,11 +35,12 @@ def create_tables(db_mngr):
                 network VARCHAR(16) NOT NULL,
                 address BYTEA NOT NULL,
                 draw_id INT NOT NULL,
-                claimable_prizes BIGINT ARRAY,
-                claimable_picks INT ARRAY,
-                dropped_prizes BIGINT ARRAY,
-                dropped_picks INT ARRAY,
+                claimable_prizes BIGINT ARRAY NOT NULL,
+                claimable_picks INT ARRAY NOT NULL,
+                dropped_prizes BIGINT ARRAY NOT NULL,
+                dropped_picks INT ARRAY NOT NULL,
                 normalized_balance BIGINT NOT NULL,
+                average_balance BIGINT NOT NULL,
                 CONSTRAINT pk_prizes PRIMARY KEY (network, address, draw_id)
             );""",
         ]

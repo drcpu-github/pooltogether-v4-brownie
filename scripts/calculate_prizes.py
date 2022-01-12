@@ -51,7 +51,9 @@ def calculate_prizes(network):
         draw_ids = options["config"]["draw_ids"]
 
     draws_dict = helper.find_draws_to_calculate(options["config"], draw_ids, network)
-    draw_ids = list(draws_dict.keys())
+    draw_ids = sorted(list(draws_dict.keys()))
+    draw_start_times = [draws_dict[draw_id]["beacon_period_started_at"] for draw_id in draw_ids]
+    draw_stop_times = [draws_dict[draw_id]["timestamp"] for draw_id in draw_ids]
 
     # If we already calculated all draw ids, stop
     if draw_ids == []:
@@ -111,6 +113,19 @@ def calculate_prizes(network):
         for draw_id, normalized_balance in zip(draw_ids, normalized_balances):
             normalized_balances_dict[account][draw_id] = normalized_balance
 
+    # Fetch average balances between draws
+    abi_ticket = json.loads(open("abis/TicketAbi.json").read())
+    ticket_contract = Contract.from_abi("Ticket", options["contracts"][network]["ticket"], abi_ticket)
+
+    average_balances_dict = {}
+    for i, account in enumerate(all_accounts):
+        print(f"Fetching average balances for account {account} ({i + 1} / {len(all_accounts)})")
+
+        average_balances_dict[account] = {}
+        average_balances = ticket_contract.getAverageBalancesBetween(account, draw_start_times, draw_stop_times)
+        for draw_id, average_balance in zip(draw_ids, average_balances):
+            average_balances_dict[account][draw_id] = average_balance
+
     # Calculate picks and prizes
     draw_calculator = DrawCalculator(network)
 
@@ -125,6 +140,7 @@ def calculate_prizes(network):
                 draws_dict[draw_id],
                 account,
                 normalized_balances_dict[account][draw_id],
+                average_balances_dict[account][draw_id],
             )
             prizes_dict[account].append(results)
 

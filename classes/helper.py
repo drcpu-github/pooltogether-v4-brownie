@@ -82,6 +82,7 @@ class Helper:
                     [int(prize["amount"] * 1E8) for prize in prize["dropped_prizes"]],
                     [prize["pick"] for prize in prize["dropped_prizes"]],
                     prize["normalized_balance"],
+                    prize["average_balance"],
                 ])
         sql = """
             INSERT INTO prizes (
@@ -92,7 +93,8 @@ class Helper:
                 claimable_picks,
                 dropped_prizes,
                 dropped_picks,
-                normalized_balance
+                normalized_balance,
+                average_balance
             ) VALUES %s
         """
 

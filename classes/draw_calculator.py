@@ -130,7 +130,7 @@ class DrawCalculator:
 
         return results
 
-    def filter_results_by_value(self, draw_results, max_picks_per_user, normalized_balance):
+    def filter_results_by_value(self, draw_results, max_picks_per_user, normalized_balance, average_balance):
         sortedPrizes = sorted(draw_results["prizes"], key=lambda l: l["amount"], reverse=True)
 
         filtered_draw_results = {}
@@ -144,22 +144,24 @@ class DrawCalculator:
 
         filtered_draw_results["normalized_balance"] = normalized_balance
 
+        filtered_draw_results["average_balance"] = average_balance
+
         return filtered_draw_results
 
-    def calculate_draw_results(self, prize_distribution, draw, address, normalized_balance):
+    def calculate_draw_results(self, prize_distribution, draw, address, normalized_balance, average_balance):
         self.sanity_check_prize_distribution(prize_distribution)
 
         picks = self.generate_picks(prize_distribution, address, normalized_balance)
 
         results = self.compute_draw_results(prize_distribution, draw, picks)
-        results = self.filter_results_by_value(results, prize_distribution["max_picks_per_user"], normalized_balance)
+        results = self.filter_results_by_value(results, prize_distribution["max_picks_per_user"], normalized_balance, average_balance)
 
         return results
 
-    def batch_calculate_draw_results(self, prize_distributions, draws, address, normalized_balances):
+    def batch_calculate_draw_results(self, prize_distributions, draws, address, normalized_balances, average_balances):
         results = []
-        for prize_distribution, draw, normalized_balance in zip(prize_distributions, draws, normalized_balances):
-            draw_results = self.calculate_draw_results(prize_distribution, draw, address, normalized_balance)
+        for prize_distribution, draw, normalized_balance, average_balance in zip(prize_distributions, draws, normalized_balances, average_balances):
+            draw_results = self.calculate_draw_results(prize_distribution, draw, address, normalized_balance, average_balance)
             results.append(draw_results)
         return results
 
