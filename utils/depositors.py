@@ -251,6 +251,10 @@ def get_historical_balances(block_number, events, contracts, all_block_numbers=N
         # Update balances
         holder = withdraw["args"]["from"]
         amount = withdraw["args"]["amount"]
+
+        if "executive_team" in contracts and holder == contracts["executive_team"]:
+            continue
+
         balances[holder][0] -= amount
 
         # Were the balances updated during the current draw
