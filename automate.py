@@ -49,6 +49,9 @@ def main():
     print("Analyzing draws")
     return_code = execute_command(["python3", "-m", "utils.analyze_draws"], f"logs/analyze_draws_{timestamp}.log")
 
+    print("Analyzing winners")
+    return_code = execute_command(["python3", "-m", "utils.analyze_winners"], f"logs/analyze_winners_{timestamp}.log")
+
     if return_code == 0:
         if os.path.exists(".draws_calculated"):
             # Read draws calculated
