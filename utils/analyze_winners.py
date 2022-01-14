@@ -73,7 +73,7 @@ def get_luckiest_winners(prizes, claimed_amounts):
         luckiest_winners.append([network, address, round(prize), round(avg_balance), rate])
     luckiest_winners = sorted(luckiest_winners, key=lambda l: l[4], reverse=True)
 
-    return luckiest_winners
+    return luckiest_winners[:100]
 
 def main():
     options = json.loads(open("options.json").read())
@@ -99,7 +99,7 @@ def main():
     f = open(f"data/luckiest_winners.csv", "w+")
 
     luckiest_winners = get_luckiest_winners(prizes, claimed_amounts)
-    f.write("Network,Address,Prizes,Balance,Winrate\n")
+    f.write("Rank,Network,Address,Prizes,Balance,Winrate\n")
     print (f"{'Rank':^10}|{'Address':^44}|{'Network':^12}|{'Prizes':^14}|{'Balance':^12}|{'Winrate':^12}")
     print("----------+--------------------------------------------+--------------+------------+------------+------------")
     for i, lw in enumerate(luckiest_winners):
