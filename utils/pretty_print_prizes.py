@@ -1,5 +1,4 @@
 import json
-import optparse
 import psycopg2
 
 from classes.database_manager import DatabaseManager
@@ -42,16 +41,12 @@ def print_prizes(prizes):
     print(f"Total prize amount: {total_prize_value} USDC")
 
 def main():
-    parser = optparse.OptionParser()
-    parser.add_option("--options", type="string", dest="options")
-    options, args = parser.parse_args()
+    options = json.loads(open("options.json").read())
 
-    json_options = json.loads(open(options.options).read())
-
-    db_mngr = DatabaseManager(json_options["config"]["user"], json_options["config"]["database"], json_options["config"]["password"])
+    db_mngr = DatabaseManager(options["config"]["user"], options["config"]["database"], options["config"]["password"])
 
     prizes = {}
-    for address in json_options["config"]["addresses"]:
+    for address in options["config"]["addresses"]:
         prizes[address] = fetch_prizes(db_mngr, address)
 
     print_prizes(prizes)
