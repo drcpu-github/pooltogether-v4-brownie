@@ -3,7 +3,29 @@ import pickle
 
 from classes.database_manager import DatabaseManager
 
-def process_claim_events(networks):
+def fetch_draws(db_mngr):
+    sql = """
+        SELECT
+            draw_id,
+            network,
+            block_number
+        FROM
+            draws
+        ORDER BY draw_id ASC
+    """
+    return db_mngr.sql_return_all(sql)
+
+def process_draws(draws):
+    draws_dict = {}
+    last_draw_id = 0
+    for draw_id, network, block_number in draws:
+        if network not in draws_dict:
+            draws_dict[network] = {}
+        draws_dict[network][draw_id] = block_number
+        last_draw_id = max(last_draw_id, draw_id)
+    return {network: (draws_dict[network][last_draw_id - 1], draws_dict[network][last_draw_id]) for network in draws_dict.keys()}
+
+def process_claim_events(networks, last_draw_blocks):
     claimed_prizes = {}
     for network in networks:
         claimed_prizes[network] = {}
@@ -12,6 +34,10 @@ def process_claim_events(networks):
         for event in events:
             account = event["args"]["user"][2:].lower()
             prize = event["args"]["payout"]
+            block_number = event["blockNumber"]
+
+            if block_number >= last_draw_blocks[network][0] and block_number <= last_draw_blocks[network][1]:
+                continue
 
             if account not in claimed_prizes[network]:
                 claimed_prizes[network][account] = 0
@@ -77,11 +103,14 @@ def get_luckiest_winners(prizes, claimed_amounts):
 
 def main():
     options = json.loads(open("options.json").read())
+    networks = list(options["contracts"].keys())
 
     db_mngr = DatabaseManager(options["config"]["user"], options["config"]["database"], options["config"]["password"])
 
-    networks = list(options["contracts"].keys())
-    claimed_amounts = process_claim_events(networks)
+    draws = fetch_draws(db_mngr)
+    last_draw_blocks = process_draws(draws)
+
+    claimed_amounts = process_claim_events(networks, last_draw_blocks)
 
     prizes = fetch_prizes(db_mngr)
 
