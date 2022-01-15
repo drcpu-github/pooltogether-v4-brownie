@@ -91,12 +91,9 @@ def get_luckiest_winners(prizes, claimed_amounts):
     for (address, network), (prize, avg_balance, _) in winners.items():
         prize = prize / 1E14
         avg_balance = avg_balance / 1E6
-        if address in claimed_amounts[network]:
-            claimed = claimed_amounts[network][address] / 1E6
-            rate = claimed / (avg_balance - claimed) * 100
-        else:
-            rate = 0
-        luckiest_winners.append([network, address, round(prize), round(avg_balance), rate])
+        claimed = claimed_amounts[network].get(address, 0) / 1E6
+        winrate = prize / (avg_balance - claimed) * 100
+        luckiest_winners.append([network, address, round(prize), round(avg_balance), winrate])
     luckiest_winners = sorted(luckiest_winners, key=lambda l: l[4], reverse=True)
 
     return luckiest_winners[:1337]
