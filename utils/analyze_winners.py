@@ -99,7 +99,7 @@ def get_luckiest_winners(prizes, claimed_amounts):
         luckiest_winners.append([network, address, round(prize), round(avg_balance), rate])
     luckiest_winners = sorted(luckiest_winners, key=lambda l: l[4], reverse=True)
 
-    return luckiest_winners[:100]
+    return luckiest_winners[:1337]
 
 def main():
     options = json.loads(open("options.json").read())
