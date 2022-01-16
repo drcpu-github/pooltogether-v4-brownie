@@ -24,9 +24,7 @@
             "prize_tier_history": "0xdD1cba915Be9c7a1e60c4B99DADE1FC49F67f80D",
             "reserve": "0xadB4D93D84b18b5D82063aCf58b21587c92fdfb5",
             "ticket": "0xdd4d117723C257CEe402285D3aCF218E9A8236E1",
-            "yield_source_prize_pool": "0xd89a09084555a7D0ABe7B111b1f78DFEdDd638Be",
-            "first_block_number": 13419913,
-            "first_draw": 1
+            "yield_source_prize_pool": "0xd89a09084555a7D0ABe7B111b1f78DFEdDd638Be"
         },
         "polygon": {
             "a_token_yield_source": "0xD4F6d570133401079D213EcF4A14FA0B4bfB5b9C",
@@ -43,9 +41,7 @@
             "receiver_timelock_trigger": "0x37A7ADD22E0da57220CeF887a75cbfA959F34784",
             "reserve": "0xCE148f6acFee9FEFb42A736B4976e657f35982b8",
             "ticket": "0x6a304dFdb9f808741244b6bfEe65ca7B3b3A6076",
-            "yield_source_prize_pool": "0x19DE635fb3678D8B8154E37d8C9Cdf182Fe84E60",
-            "first_block_number": 20226772,
-            "first_draw": 1
+            "yield_source_prize_pool": "0x19DE635fb3678D8B8154E37d8C9Cdf182Fe84E60"
         },
         "avalanche": {
             "a_token_yield_source": "0x7437db21A0dEB844Fa64223e2d6Db569De9648Ff",
@@ -62,7 +58,19 @@
             "receiver_timelock_trigger": "0xC2E914f1eBe630335F10e6240A0bf0635A2E9cB7",
             "reserve": "0xf04E5B81e69Cdc3c08BC5Da64ca053AD46a3d029",
             "ticket": "0xB27f379C050f6eD0973A01667458af6eCeBc1d90",
-            "yield_source_prize_pool": "0xF830F5Cb2422d555EC34178E27094a816c8F95EC",
+            "yield_source_prize_pool": "0xF830F5Cb2422d555EC34178E27094a816c8F95EC"
+        }
+    },
+    "deploy_data": {
+        "ethereum": {
+            "first_block_number": 13419913,
+            "first_draw": 1
+        },
+        "polygon": {
+            "first_block_number": 20226772,
+            "first_draw": 1
+        },
+        "avalanche": {
             "first_block_number": 8501287,
             "first_draw": 67
         }

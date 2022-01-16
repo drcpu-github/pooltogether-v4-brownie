@@ -55,7 +55,7 @@ def get_draws(network):
 
     print(f"Fetching draw(s) {', '.join(str(draw_id) for draw_id in draw_ids)}")
 
-    first_block_number = options["contracts"][network]["first_block_number"]
+    first_block_number = options["deploy_data"][network]["first_block_number"]
 
     # Fetch draw parameters
     draws = draw_buffer_contract.getDraws(draw_ids)

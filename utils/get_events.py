@@ -42,9 +42,9 @@ def get_events(event, from_block, to_block):
         else:
             raise
 
-def get_block_boundaries(options, w3_provider):
+def get_block_boundaries(deploy_data, w3_provider):
     last_block = w3_provider.eth.get_block("latest")
-    return options["first_block_number"], last_block["number"]
+    return deploy_data["first_block_number"], last_block["number"]
 
 def read_processed_events(events_file, first_block_number):
     events = pickle.load(open(events_file, "rb"))
@@ -85,9 +85,10 @@ def main():
         provider = helper.setup_web3_provider(network)
 
         contract_details = options["contracts"][network]
+        deploy_data = options["deploy_data"][network]
 
         # Fetch block boundaries
-        first_block_number, last_block_number = get_block_boundaries(contract_details, provider)
+        first_block_number, last_block_number = get_block_boundaries(deploy_data, provider)
 
         # Contracts
         yield_source_prize_pool_contract, ticket_contract, prize_distributor_contract, draw_calculator_timelock_contract = get_contracts(provider, contract_details)
