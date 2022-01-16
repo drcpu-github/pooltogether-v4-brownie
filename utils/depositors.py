@@ -56,51 +56,6 @@ def get_block_data(w3_provider, block_number=None):
         "block_timestamp": block["timestamp"],
     }
 
-def binary_search_block_at_time(w3_provider, start_block_number, timestamp=None, unixtime=None):
-    print(f"Binary searching blockchain for timestamp {timestamp if timestamp else unixtime}")
-
-    # Calculate Unix time for timestamp
-    if timestamp:
-        date = datetime.datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S")
-        unixtime = int(calendar.timegm(date.timetuple()))
-
-    assert unixtime != None, "Unixtime has to be defined"
-
-    # Stop block
-    stop_block_data = get_block_data(w3_provider)
-    stop_block_number = stop_block_data["block_number"]
-    stop_block_time = stop_block_data["block_timestamp"]
-
-    # Start block
-    start_block_data = get_block_data(w3_provider, block_number=start_block_number)
-    start_block_time = start_block_data["block_timestamp"]
-
-    if unixtime > stop_block_time:
-        return stop_block_number
-    elif unixtime < start_block_time:
-        return start_block_number
-    else:
-        while True:
-            # Pivot to the middle of the range
-            pivot = int((start_block_number + stop_block_number) / 2)
-            pivot_block_data = get_block_data(w3_provider, block_number=pivot)
-            # Update end boundary to pivot
-            if pivot_block_data["block_timestamp"] < unixtime:
-                start_block_number = pivot
-            # Update start boundary to pivot
-            elif pivot_block_data["block_timestamp"] > unixtime:
-                stop_block_number = pivot
-            # Matching time found
-            else:
-                return pivot
-            # Special end condition for when there is no exact timestamp match
-            if start_block_number + 1 == stop_block_number:
-                stop_block_data = get_block_data(w3_provider, block_number=stop_block_number)
-                if stop_block_data["block_timestamp"] <= unixtime:
-                    return stop_block_number
-                else:
-                    return start_block_number
-
 def get_blocks_for_draws(w3_provider, options, network):
     block_data = get_block_data(w3_provider)
 
@@ -111,22 +66,8 @@ def get_blocks_for_draws(w3_provider, options, network):
 
     draw_ids, block_numbers = [], []
     for draw_id, timestamp, block_number in draws:
+        assert block_number != None
         draw_ids.append(draw_id)
-
-        # If necessary find the new block number
-        if not block_number:
-            first_block_number = options["contracts"][network]["first_block_number"]
-            block_number = binary_search_block_at_time(w3_provider, first_block_number, unixtime=timestamp)
-
-            block = w3_provider.eth.get_block(block_number)
-            # Check that the provided block timestamp is smaller than or equal to the requested timestamp
-            # Also check that they don't differ by more than five seconds
-            assert block["timestamp"] <= timestamp, f"Requested timestamp ({timestamp}) and timestamp for block {block['number']} ({block['timestamp']}) do not match for draw id {draw_id} on network {network}"
-            assert (timestamp - block["timestamp"]) <= 10, f"Requested timestamp ({timestamp}) and timestamp for block {block['number']} ({block['timestamp']}) do not match for draw id {draw_id} on network {network}"
-
-            sql = "UPDATE draws SET block_number='%s' WHERE network='%s' AND draw_id='%s'" % (block_number, network, draw_id)
-            db_mngr.sql_update_table(sql)
-
         block_numbers.append(block_number)
 
     return draw_ids, block_numbers
