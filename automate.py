@@ -47,12 +47,12 @@ def main():
     execute_command(["pg_dump", "pooltogether"], f"data/database.sql")
 
     print("Analyzing draws")
-    return_code = execute_command(["python3", "-m", "utils.analyze_draws"], f"logs/analyze_draws_{timestamp}.log")
+    return_code_1 = execute_command(["python3", "-m", "utils.analyze_draws"], f"logs/analyze_draws_{timestamp}.log")
 
     print("Analyzing winners")
-    return_code = execute_command(["python3", "-m", "utils.analyze_winners"], f"logs/analyze_winners_{timestamp}.log")
+    return_code_2 = execute_command(["python3", "-m", "utils.analyze_winners"], f"logs/analyze_winners_{timestamp}.log")
 
-    if return_code == 0:
+    if return_code_1 + return_code_2 == 0:
         if os.path.exists(".draws_calculated"):
             # Read draws calculated
             f = open(".draws_calculated", "r")
