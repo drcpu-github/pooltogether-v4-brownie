@@ -4,7 +4,8 @@
         "user": "<username, e.g. pooltogether>",
         "database": "<database name, e.g. prizes>",
         "password": "<database password>",
-        "addresses": []
+        "addresses": [],
+        "maximum_retries": 5
     },
     "contracts": {
         "ethereum": {

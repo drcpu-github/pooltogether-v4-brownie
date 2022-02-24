@@ -32,6 +32,8 @@ def calculate_prizes(network):
         sys.exit(1)
     options = json.loads(open("options.json").read())
 
+    maximum_retries = options["config"]["maximum_retries"]
+
     load_dotenv()
 
     helper = Helper()
@@ -109,7 +111,20 @@ def calculate_prizes(network):
         print(f"Fetching normalized balances for account {account} ({i + 1} / {len(all_accounts)})")
 
         normalized_balances_dict[account] = {}
-        normalized_balances = draw_calculator_contract.getNormalizedBalancesForDrawIds(account, draw_ids)
+
+        retries = 0
+        while True:
+            try:
+                normalized_balances = draw_calculator_contract.getNormalizedBalancesForDrawIds(account, draw_ids)
+                break
+            except ValueError:
+                retries += 1
+                if retries < maximum_retries:
+                    print(f"Failed to fetch normalized balances for {account}, retrying in 5 seconds")
+                    time.sleep(5)
+                else:
+                    print(f"Failed to fetch normalized balances for {account}, quitting after {maximum_retries} retries")
+
         for draw_id, normalized_balance in zip(draw_ids, normalized_balances):
             normalized_balances_dict[account][draw_id] = normalized_balance
 
@@ -122,7 +137,20 @@ def calculate_prizes(network):
         print(f"Fetching average balances for account {account} ({i + 1} / {len(all_accounts)})")
 
         average_balances_dict[account] = {}
-        average_balances = ticket_contract.getAverageBalancesBetween(account, draw_start_times, draw_stop_times)
+
+        retries = 0
+        while True:
+            try:
+                average_balances = ticket_contract.getAverageBalancesBetween(account, draw_start_times, draw_stop_times)
+                break
+            except ValueError:
+                retries += 1
+                if retries < maximum_retries:
+                    print(f"Failed to fetch average balances for {account}, retrying in 5 seconds")
+                    time.sleep(5)
+                else:
+                    print(f"Failed to fetch average balances for {account}, quitting after {maximum_retries} retries")
+
         for draw_id, average_balance in zip(draw_ids, average_balances):
             average_balances_dict[account][draw_id] = average_balance
 
