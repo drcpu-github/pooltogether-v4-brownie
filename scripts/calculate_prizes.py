@@ -7,7 +7,6 @@ from brownie import Contract
 
 from dotenv import load_dotenv
 
-from classes.database_manager import DatabaseManager
 from classes.draw_calculator import DrawCalculator
 from classes.helper import Helper
 

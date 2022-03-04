@@ -9,7 +9,6 @@ from dotenv import load_dotenv
 
 from eth_abi import encode_abi
 
-from classes.database_manager import DatabaseManager
 from classes.helper import Helper
 
 def get_draws_ethereum():
