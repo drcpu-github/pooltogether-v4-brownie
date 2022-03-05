@@ -4,6 +4,7 @@ import time
 from brownie import accounts, config, Contract
 
 from classes.draw_calculator import DrawCalculator
+from classes.helper import Helper
 
 def claim_prizes_ethereum():
     print("Claiming prizes for the ethereum deposits")
@@ -19,36 +20,63 @@ def claim_prizes_polygon():
 
     claim_prizes(options, "polygon")
 
+def claim_prizes_avalanche():
+    print("Claiming prizes for the avalanche deposits")
+
+    options = json.loads(open("options.json").read())
+
+    claim_prizes(options, "avalanche")
+
 def claim_prizes(options, network):
     options = json.loads(open("options.json").read())
-    prizes = json.loads(open("prizes_to_claim.json").read())
 
+    # Fetch newest available draw id
+    abi_buffer = json.loads(open("abis/DrawBufferAbi.json").read())
+    draw_buffer_contract = Contract.from_abi("DrawBuffer", options["contracts"][network]["draw_buffer"], abi_buffer)
+
+    _, newest_draw, _, _, _ = draw_buffer_contract.getNewestDraw()
+
+    # Setup prize claim contract
     abi_prize_distributor = json.loads(open("abis/PrizeDistributorAbi.json").read())
-    prize_distributor_contract = Contract.from_abi("PrizeDistributor", options["contracts"][network]["prize_distributor_address"], abi_prize_distributor)
+    prize_distributor_contract = Contract.from_abi("PrizeDistributor", options["contracts"][network]["prize_distributor"], abi_prize_distributor)
 
-    draw_calculator = DrawCalculator()
+    draw_calculator = DrawCalculator(network)
 
+    # Setup account to use for claiming prizes
     accounts.add(config["wallets"]["from_key"])
     claiming_account = accounts[0]
 
-    for account, draws in prizes.items():
+    helper = Helper()
+
+    for account in options["config"]["addresses"]:
         print(f"Claiming prizes for account {account}")
 
+        # Fetch prizes from database for account and network
+        draws = helper.get_prizes(options["config"], network, account)
+
+        total_value_claimable = 0
         unclaimed_draws, unclaimed_draw_ids = [], []
         for draw in draws:
+            # Cannot claim prizes for the newest draw due to the timelock
+            if draw["draw_id"] == newest_draw:
+                continue
+            # Only need to prepare claims if the account won something
             if draw["total_value_claimable"] > 0:
                 payed_out = prize_distributor_contract.getDrawPayoutBalanceOf(account, draw["draw_id"])
                 if payed_out == 0:
+                    total_value_claimable += draw["total_value_claimable"]
                     unclaimed_draws.append(draw)
                     unclaimed_draw_ids.append(draw["draw_id"])
                 else:
                     print(f"Already claimed prizes for account {account}, draw id {draw['draw_id']}")
 
+        # Create claims
         claim = draw_calculator.prepare_claims(
             account,
             unclaimed_draws,
         )
 
+        # Claim
         prize_distributor_contract.claim(
             account,
             unclaimed_draw_ids,

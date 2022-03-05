@@ -102,6 +102,33 @@ class Helper:
         db_mngr.sql_execute_many(sql, sql_prizes)
         db_mngr.terminate(verbose=False)
 
+    def get_prizes(self, options, network, address):
+        print("Fetching prizes from database")
+
+        sql = """
+            SELECT network, address, draw_id, claimable_prizes, claimable_picks
+            FROM
+                prizes
+            WHERE
+                network='%s'
+            AND
+                address='\\x%s'
+        """ % (network, address[2:])
+
+        db_mngr = DatabaseManager(options["user"], options["database"], options["password"])
+        prizes = db_mngr.sql_return_all(sql)
+        db_mngr.terminate(verbose=False)
+
+        draw_prizes = []
+        for prize in prizes:
+            draw_prizes.append({
+                "total_value_claimable": sum(prize[3]),
+                "draw_id": prize[2],
+                "claimable_prizes": [{"value": value, "pick": pick} for value, pick in zip(prize[3], prize[4])],
+            })
+
+        return draw_prizes
+
     def setup_web3_provider(self, network):
         print("Setting up web3 provider")
 
