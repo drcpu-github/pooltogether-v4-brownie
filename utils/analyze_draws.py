@@ -92,16 +92,21 @@ def find_unclaimed_prizes(prizes, claim_events):
             assert prizes_dict[network][draw_id][user] - payout >= 0, (network, draw_id, user)
             prizes_dict[network][draw_id][user] -= payout
 
-    draws_unclaimed_prizes = {}
+    draws_unclaimed_prizes, network_draws_unclaimed_prizes = {}, {}
     for network, draws in prizes_dict.items():
+        network_draws_unclaimed_prizes[network] = {}
         for draw, users in draws.items():
             for user, amount in users.items():
                 if draw not in draws_unclaimed_prizes:
                     draws_unclaimed_prizes[draw] = 0
+                if draw not in network_draws_unclaimed_prizes[network]:
+                    network_draws_unclaimed_prizes[network][draw] = 0
                 draws_unclaimed_prizes[draw] += amount
+                network_draws_unclaimed_prizes[network][draw] += amount
                 assert draws_unclaimed_prizes[draw] >= 0, draw
+                assert network_draws_unclaimed_prizes[network][draw] >= 0, draw
 
-    return draws_unclaimed_prizes
+    return draws_unclaimed_prizes, network_draws_unclaimed_prizes
 
 def unique_winners_per_draw(prizes):
     winners_per_draw = {}
@@ -222,6 +227,29 @@ def print_per_prize_data(prize_amounts, prizes, key):
 
     f.close()
 
+def print_unclaimed_prizes_per_network(network_draws_unclaimed_prizes_amount):
+    f = open(f"data/unclaimed_prizes.csv", "w+")
+
+    print(f"{'Network':^12}|{'Unclaimed amount':^20}")
+    f.write("Network,Unclaimed amount\n")
+    print("------------+--------------------")
+
+    total_unclaimed_amount = 0
+    for network, draws in network_draws_unclaimed_prizes_amount.items():
+        # Take the last 60 draws
+        sorted_draws = sorted(draws.items())[-60:]
+        unclaimed_amount = sum(amount for draw, amount in sorted_draws)
+        total_unclaimed_amount += unclaimed_amount
+
+        print(f"{network:^12}|{unclaimed_amount:^20}")
+        f.write(f"{network},{unclaimed_amount}\n")
+
+    print("------------+--------------------")
+    print(f"{'Total':^12}|{total_unclaimed_amount:^20}")
+    f.write(f"{'Total'},{total_unclaimed_amount}\n")
+
+    f.close()
+
 def main():
     options = json.loads(open("options.json").read())
 
@@ -233,12 +261,14 @@ def main():
     prizes = fetch_all_data(db_mngr)
 
     prize_amounts, draws_claimable_prizes, draws_claimable_prizes_amount, draws_dropped_prizes, draws_dropped_prizes_amount, draws_dropped_addresses = accumulate_per_draw(prizes)
-    draws_unclaimed_prizes_amount = find_unclaimed_prizes(prizes, claim_events)
+    draws_unclaimed_prizes_amount, network_draws_unclaimed_prizes_amount = find_unclaimed_prizes(prizes, claim_events)
     winners_per_draw, unique_winners = unique_winners_per_draw(prizes)
 
     print_amount_data(draws_claimable_prizes_amount, draws_unclaimed_prizes_amount, draws_dropped_prizes_amount, draws_dropped_addresses, winners_per_draw, unique_winners)
     print_per_prize_data(prize_amounts, draws_claimable_prizes, "claimable")
     print_per_prize_data(prize_amounts, draws_dropped_prizes, "dropped")
+
+    print_unclaimed_prizes_per_network(network_draws_unclaimed_prizes_amount)
 
 if __name__ == "__main__":
     main()
