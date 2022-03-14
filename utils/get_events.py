@@ -10,7 +10,7 @@ from web3.middleware import geth_poa_middleware
 from classes.helper import Helper
 
 # This function is tailored to fetch iterative events from Alchemy and won't work with another node API provider such as Infura
-def get_events_iteratively(event, from_block, to_block, blocks_per_call=100000):
+def get_events_iteratively(event, from_block, to_block, blocks_per_call=131072):
     print(f"Fetching {event.event_name} events iteratively from {from_block} to {to_block} limited to {blocks_per_call} blocks")
     events = []
     for block in range(from_block, to_block, blocks_per_call):
@@ -21,6 +21,10 @@ def get_events_iteratively(event, from_block, to_block, blocks_per_call=100000):
             events.extend(event_filter.get_all_entries())
         except ValueError as err:
             if "message" in err.args[0] and "Log response size exceeded." in err.args[0]["message"]:
+                print(f"Could not fetch all events at once, falling back to iterative event fetching")
+                events.extend(get_events_iteratively(event, block, to_block, blocks_per_call=int(blocks_per_call / 2)))
+                break
+            elif "message" in err.args[0] and "requested too many blocks" in err.args[0]["message"]:
                 print(f"Could not fetch all events at once, falling back to iterative event fetching")
                 events.extend(get_events_iteratively(event, block, to_block, blocks_per_call=int(blocks_per_call / 2)))
                 break
@@ -37,6 +41,9 @@ def get_events(event, from_block, to_block):
         return event_filter.get_all_entries()
     except ValueError as err:
         if "message" in err.args[0] and "Log response size exceeded." in err.args[0]["message"]:
+            print(f"Could not fetch all {event.event_name} events at once, falling back to iterative event fetching")
+            return get_events_iteratively(event, from_block, to_block)
+        elif "message" in err.args[0] and "requested too many blocks" in err.args[0]["message"]:
             print(f"Could not fetch all {event.event_name} events at once, falling back to iterative event fetching")
             return get_events_iteratively(event, from_block, to_block)
         else:
