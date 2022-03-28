@@ -4,7 +4,7 @@ import subprocess
 
 def execute_command(command, output_file):
     if output_file:
-        f = open(output_file, "w+")
+        f = open(output_file, "a+")
         p = subprocess.Popen(command, stdout=f, stderr=f)
         p.communicate()
         f.close()
@@ -44,7 +44,11 @@ def main():
         execute_command(["/home/pooltogether/.local/bin/brownie", "run", "scripts/calculate_prizes.py", f"calculate_prizes_{network.lower()}", "--network", rpc], f"logs/calculate_prizes_{network.lower()}_{timestamp}.log")
 
     print("Dump database")
-    execute_command(["pg_dump", "pooltogether"], f"data/database.sql")
+    os.system("rm data/data.sql.*")
+    execute_command(["pg_dump", "--schema-only", "pooltogether"], "data/schema.sql")
+    execute_command(["pg_dump", "--data-only", "pooltogether"], "data/data.sql")
+    execute_command(["split", "-b", "32m", "-d", "data/data.sql", "data/data.sql."], None)
+    os.system("rm data/data.sql")
 
     print("Analyzing draws")
     return_code_1 = execute_command(["python3", "-m", "utils.analyze_draws"], f"logs/analyze_draws_{timestamp}.log")
@@ -65,16 +69,19 @@ def main():
                 draws.extend([int(draw) for draw in line.split(":")[-1].split(", ")])
             draws = ", ".join([str(draw_id) for draw_id in list(set(draws))])
 
+            # Add potentially new files
+            execute_command(["git", "add", "data/*"], f"logs/git_{timestamp}.log")
+
             # Commit
             print("Committing data")
             if ", " in draws:
                 commit_message = f"[data] Updated data files for draws {draws}"
             else:
                 commit_message = f"[data] Updated data files for draw {draws}"
-            execute_command(["git", "commit", f"data/*", "-m", f"{commit_message}"], None)
+            execute_command(["git", "commit", "data/*", "-m", f"{commit_message}"], f"logs/git_{timestamp}.log")
 
             # Push
-            execute_command(["git", "push"], None)
+            execute_command(["git", "push"], f"logs/git_{timestamp}.log")
         else:
             print("Nothing to commit")
 
