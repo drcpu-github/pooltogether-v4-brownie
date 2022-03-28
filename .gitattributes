@@ -1,3 +1,2 @@
 *.sol linguist-language=Solidity
 *.vy linguist-language=Python
-data/database.sql filter=lfs diff=lfs merge=lfs -text
