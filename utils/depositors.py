@@ -107,6 +107,28 @@ def get_historical_balances(block_number, events, contracts, all_block_numbers=N
         if previous_draw_block_number != block_number and deposit["blockNumber"] > previous_draw_block_number:
             balances[holder][1] = True
 
+    # Process claims
+    for claimeddraw in events["claimeddraw"]:
+        if claimeddraw["blockNumber"] > block_number:
+            warn_events_outdated = False
+            continue
+
+        # Update balance
+        claimee = claimeddraw["args"]["user"]
+        payout = claimeddraw["args"]["payout"]
+
+        if claimee not in balances:
+            # No information about previous draws, assume balance was updated during this draw
+            if previous_draw_block_number == block_number:
+                balances[claimee] = [0, True]
+            else:
+                balances[claimee] = [0, False]
+        balances[claimee][0] += payout
+
+        # Were the balances updated during the current draw?
+        if previous_draw_block_number != block_number and claimeddraw["blockNumber"] > previous_draw_block_number:
+            balances[claimee][1] = True
+
     for transfer in events["transfer"]:
         if transfer["blockNumber"] > block_number:
             warn_events_outdated = False
@@ -146,28 +168,6 @@ def get_historical_balances(block_number, events, contracts, all_block_numbers=N
         if previous_draw_block_number != block_number and transfer["blockNumber"] > previous_draw_block_number:
             balances[recipient][1] = True
             balances[sender][1] = True
-
-    # Process claims
-    for claimeddraw in events["claimeddraw"]:
-        if claimeddraw["blockNumber"] > block_number:
-            warn_events_outdated = False
-            continue
-
-        # Update balance
-        claimee = claimeddraw["args"]["user"]
-        payout = claimeddraw["args"]["payout"]
-
-        if claimee not in balances:
-            # No information about previous draws, assume balance was updated during this draw
-            if previous_draw_block_number == block_number:
-                balances[claimee] = [0, True]
-            else:
-                balances[claimee] = [0, False]
-        balances[claimee][0] += payout
-
-        # Were the balances updated during the current draw?
-        if previous_draw_block_number != block_number and claimeddraw["blockNumber"] > previous_draw_block_number:
-            balances[claimee][1] = True
 
     # Keep map of delegators to delegatees and watch for resets
     delegations = {}
