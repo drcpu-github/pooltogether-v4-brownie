@@ -78,4 +78,8 @@ def get_draws(network):
     # Insert draws in database
     helper.insert_draws(options["config"], draws_lst)
 
+    f = open(".draws_fetched", "a+")
+    f.write(f"{network}: {', '.join(str(draw_id) for draw_id in draw_ids)}\n")
+    f.close()
+
     print(f"Getting draws for {network} took {time.perf_counter() - start} seconds")

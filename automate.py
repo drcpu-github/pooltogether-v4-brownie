@@ -36,6 +36,20 @@ def main():
         print(f"Fetching draws for {network}")
         execute_command(["/home/pooltogether/.local/bin/brownie", "run", "scripts/get_draws.py", f"get_draws_{network.lower()}", "--network", rpc], f"logs/get_draws_{network.lower()}_{timestamp}.log")
 
+    if os.path.exists(".draws_fetched"):
+        f = open(".draws_fetched", "r")
+        networks_fetched = set([line.split(":")[0] for line in f.readlines()])
+        f.close()
+
+        all_networks = set([network.lower() for network in networks.keys()])
+
+        if all_networks - networks_fetched != set():
+            return
+    else:
+        return
+
+    os.remove(".draws_fetched")
+
     print("Calculating depositors")
     execute_command(["python3", "-m", "utils.depositors", "--draws"], f"logs/depositors_{timestamp}.log")
 
