@@ -75,6 +75,8 @@ def get_draws(network):
             beacon_period_seconds,
         ])
 
+        time.sleep(1)
+
     # Insert draws in database
     helper.insert_draws(options["config"], draws_lst)
 
