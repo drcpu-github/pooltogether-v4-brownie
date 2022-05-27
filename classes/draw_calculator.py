@@ -15,7 +15,7 @@ class DrawCalculator:
 
     def calculate_number_of_picks_for_user(self, prize_distribution, normalized_balance):
         number_of_picks_for_draw = prize_distribution["number_of_picks"]
-        return int(math.ceil(number_of_picks_for_draw * normalized_balance / Web3.toWei(1, "ether")))
+        return int(number_of_picks_for_draw * normalized_balance / Web3.toWei(1, "ether"))
 
     def compute_pick(self, address, pick):
         abi_encoded_value = encode_abi(["bytes32", "uint256"], [address, pick])
