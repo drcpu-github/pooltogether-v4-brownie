@@ -142,7 +142,10 @@ class Helper:
         elif network == "avalanche":
             w3_provider = Web3(Web3.HTTPProvider(f"https://api.avax.network/ext/bc/C/rpc"))
             w3_provider.middleware_onion.inject(geth_poa_middleware, layer=0)
-
+        elif network == "optimism":
+            WEB3_ALCHEMY_POLYGON_PROJECT_ID = os.getenv("WEB3_ALCHEMY_POLYGON_PROJECT_ID")
+            w3_provider = Web3(Web3.HTTPProvider(f"https://opt-mainnet.g.alchemy.com/v2/{WEB3_ALCHEMY_POLYGON_PROJECT_ID}"))
+            w3_provider.middleware_onion.inject(geth_poa_middleware, layer=0)
         return w3_provider
 
     def fetch_draw_ids(self, network, draw_buffer_address):
