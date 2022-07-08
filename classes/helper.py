@@ -142,7 +142,10 @@ class Helper:
         elif network == "avalanche":
             w3_provider = Web3(Web3.HTTPProvider(f"https://api.avax.network/ext/bc/C/rpc"))
             w3_provider.middleware_onion.inject(geth_poa_middleware, layer=0)
-
+        elif network == "optimism":
+            WEB3_ALCHEMY_PROJECT_ID = os.getenv("WEB3_ALCHEMY_PROJECT_ID")
+            w3_provider = Web3(Web3.HTTPProvider(f"https://opt-mainnet.g.alchemy.com/v2/{WEB3_ALCHEMY_PROJECT_ID}"))
+            w3_provider.middleware_onion.inject(geth_poa_middleware, layer=0)
         return w3_provider
 
     def fetch_draw_ids(self, network, draw_buffer_address):
@@ -245,6 +248,9 @@ class Helper:
         elif network == "ethereum":
             base_url = "https://api.etherscan.io/api"
             api_key = os.getenv("ETHERSCAN_API_KEY")
+        elif network == "optimism":
+            base_url = "https://api-optimistic.etherscan.io/api"
+            api_key = os.getenv("OPTIMISM_API_KEY")
         else:
             raise ValueError("Unknown network")
         return base_url, api_key

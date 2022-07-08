@@ -37,10 +37,14 @@ def setup_web3_providers():
     WEB3_ALCHEMY_POLYGON_PROJECT_ID = os.getenv("WEB3_ALCHEMY_POLYGON_PROJECT_ID")
     w3_polygon = Web3(Web3.HTTPProvider(f"https://polygon-mainnet.g.alchemy.com/v2/{WEB3_ALCHEMY_POLYGON_PROJECT_ID}"))
     w3_polygon.middleware_onion.inject(geth_poa_middleware, layer=0)
+    
+    w3_optimism = Web3(Web3.HTTPProvider(f"https://opt-mainnet.g.alchemy.com/v2/{WEB3_ALCHEMY_POLYGON_PROJECT_ID}"))
+    w3_optimism.middleware_onion.inject(geth_poa_middleware, layer=0)
 
     return {
         "ethereum": w3_ethereum, 
         "polygon": w3_polygon,
+        "optimism": w3_optimism,
     }
 
 def get_block_data(w3_provider, block_number=None):
