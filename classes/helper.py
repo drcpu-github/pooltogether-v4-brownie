@@ -248,6 +248,9 @@ class Helper:
         elif network == "ethereum":
             base_url = "https://api.etherscan.io/api"
             api_key = os.getenv("ETHERSCAN_API_KEY")
+        elif network == "optimism":
+            base_url = "https://api-optimistic.etherscan.io/api"
+            api_key = os.getenv("OPTIMISM_API_KEY")
         else:
             raise ValueError("Unknown network")
         return base_url, api_key
