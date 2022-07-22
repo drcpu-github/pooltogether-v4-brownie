@@ -19,6 +19,7 @@ def main():
         "Ethereum": "mainnet-alchemy",
         "Polygon": "polygon-mainnet-alchemy",
         "Avalanche": "avalanche-mainnet",
+        "Optimism": "optimism-mainnet",
     }
 
     if os.path.exists(".draws_calculated"):

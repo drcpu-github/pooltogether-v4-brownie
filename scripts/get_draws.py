@@ -22,6 +22,10 @@ def get_draws_polygon():
 def get_draws_avalanche():
     print("Getting draws for the Avalanche network")
     get_draws("avalanche")
+    
+def get_draws_optimism():
+    print("Getting draws for the Optimism network")
+    get_draws("optimism")
 
 def get_draws(network):
     start = time.perf_counter()

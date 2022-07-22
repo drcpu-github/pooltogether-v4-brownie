@@ -22,6 +22,10 @@ def calculate_prizes_avalanche():
     print("Calculating prizes for the Avalanche depositors")
     calculate_prizes("avalanche")
 
+def calculate_prizes_optimism():
+    print("Calculating prizes for the Optimism depositors")
+    calculate_prizes("optimism")
+
 def calculate_prizes(network):
     start = time.perf_counter()
 
