@@ -9,7 +9,7 @@ def read_claim_events(networks):
         events[network] = pickle.load(open(f"events/claimeddraw_{network}.bin", "rb"))
     return events
 
-def fetch_all_data(db_mngr):
+def fetch_prizes(db_mngr, draw_id):
     sql = """
         SELECT
             network,
@@ -21,64 +21,57 @@ def fetch_all_data(db_mngr):
             dropped_picks
         FROM
             prizes
-    """
+        WHERE
+            draw_id=%s
+    """ % draw_id
     return db_mngr.sql_return_all(sql)
 
-def accumulate_per_draw(prizes):
+def accumulate_prizes(prizes):
     prize_amounts = set()
-    draws_claimable_prizes, draws_claimable_prizes_amount = {}, {}
-    draws_dropped_prizes, draws_dropped_prizes_amount, draws_dropped_addresses = {}, {}, {}
+    claimable_prizes_hist, claimable_prizes_amount = {}, 0
+    dropped_prizes_hist, dropped_prizes_amount, dropped_addresses = {}, 0, 0
     for prize in prizes:
         network, address, draw_id, claimable_prizes, claimable_picks, dropped_prizes, dropped_picks = prize
 
         if claimable_prizes:
-            # Initialize claimable prizes dictionaries
-            if draw_id not in draws_claimable_prizes_amount:
-                draws_claimable_prizes[draw_id] = {}
-                draws_claimable_prizes_amount[draw_id] = 0
             # Sum claimable prizes per prize category
             for claimable_prize in claimable_prizes:
                 prize_amounts.add(claimable_prize)
-                if claimable_prize not in draws_claimable_prizes[draw_id]:
-                    draws_claimable_prizes[draw_id][claimable_prize] = 0
-                draws_claimable_prizes[draw_id][claimable_prize] += 1
+                if claimable_prize not in claimable_prizes_hist:
+                    claimable_prizes_hist[claimable_prize] = 0
+                claimable_prizes_hist[claimable_prize] += 1
             # Sum all claimable prizes to a single value
-            draws_claimable_prizes_amount[draw_id] += sum(claimable_prizes)
+            claimable_prizes_amount += sum(claimable_prizes)
 
         if dropped_prizes:
-            # Initialize dropped prizes dictionaries
-            if draw_id not in draws_dropped_prizes:
-                draws_dropped_prizes[draw_id] = {}
-                draws_dropped_prizes_amount[draw_id] = 0
-                draws_dropped_addresses[draw_id] = 0
             # Sum dropped prizes per prize category
             for dropped_prize in dropped_prizes:
                 prize_amounts.add(dropped_prize)
-                if dropped_prize not in draws_dropped_prizes[draw_id]:
-                    draws_dropped_prizes[draw_id][dropped_prize] = 0
-                draws_dropped_prizes[draw_id][dropped_prize] += 1
+                if dropped_prize not in dropped_prizes_hist:
+                    dropped_prizes_hist[dropped_prize] = 0
+                dropped_prizes_hist[dropped_prize] += 1
             # Sum all dropped prizes to a single value
-            draws_dropped_prizes_amount[draw_id] += sum(dropped_prizes)
+            dropped_prizes_amount += sum(dropped_prizes)
             if sum(dropped_prizes) > 0:
-                draws_dropped_addresses[draw_id] += 1
+                dropped_addresses += 1
 
-    return prize_amounts, draws_claimable_prizes, draws_claimable_prizes_amount, draws_dropped_prizes, draws_dropped_prizes_amount, draws_dropped_addresses
+    return prize_amounts, claimable_prizes_hist, claimable_prizes_amount, dropped_prizes_hist, dropped_prizes_amount, dropped_addresses
 
-def find_unclaimed_prizes(prizes, claim_events):
+def build_prizes_dict(prizes):
     prizes_dict = {}
     for prize in prizes:
         network, address, draw_id, claimable_prizes, claimable_picks, dropped_prizes, dropped_picks = prize
         address = address.hex()
         if network not in prizes_dict:
             prizes_dict[network] = {}
-        if draw_id not in prizes_dict[network]:
-            prizes_dict[network][draw_id] = {}
         # Sum prizes per address
         if claimable_prizes:
-            prizes_dict[network][draw_id][address] = round(sum(claimable_prizes) / 1E14)
+            prizes_dict[network][address] = round(sum(claimable_prizes) / 1E14)
         else:
-            prizes_dict[network][draw_id][address] = 0
+            prizes_dict[network][address] = 0
+    return prizes_dict
 
+def find_unclaimed_prizes(prizes_dict, claim_events):
     claimed_prizes = {}
     for network, claims in claim_events.items():
         for claim in claims:
@@ -88,44 +81,33 @@ def find_unclaimed_prizes(prizes, claim_events):
             if draw_id not in claimed_prizes:
                 claimed_prizes[draw_id] = []
             user = user[2:].lower()
-            assert user in prizes_dict[network][draw_id], claim
-            assert prizes_dict[network][draw_id][user] - payout >= 0, (network, draw_id, user)
-            prizes_dict[network][draw_id][user] -= payout
+            assert user in prizes_dict[draw_id][network], claim
+            assert prizes_dict[draw_id][network][user] - payout >= 0, (network, draw_id, user)
+            prizes_dict[draw_id][network][user] -= payout
 
-    draws_unclaimed_prizes, network_draws_unclaimed_prizes = {}, {}
-    for network, draws in prizes_dict.items():
-        network_draws_unclaimed_prizes[network] = {}
-        for draw, users in draws.items():
+    draws_unclaimed_prizes, draws_network_unclaimed_prizes = {}, {}
+    for draw_id, networks in prizes_dict.items():
+        draws_network_unclaimed_prizes[draw_id] = {}
+        for network, users in networks.items():
             for user, amount in users.items():
-                if draw not in draws_unclaimed_prizes:
-                    draws_unclaimed_prizes[draw] = 0
-                if draw not in network_draws_unclaimed_prizes[network]:
-                    network_draws_unclaimed_prizes[network][draw] = 0
-                draws_unclaimed_prizes[draw] += amount
-                network_draws_unclaimed_prizes[network][draw] += amount
-                assert draws_unclaimed_prizes[draw] >= 0, draw
-                assert network_draws_unclaimed_prizes[network][draw] >= 0, draw
+                if draw_id not in draws_unclaimed_prizes:
+                    draws_unclaimed_prizes[draw_id] = 0
+                if network not in draws_network_unclaimed_prizes[draw_id]:
+                    draws_network_unclaimed_prizes[draw_id][network] = 0
+                draws_unclaimed_prizes[draw_id] += amount
+                draws_network_unclaimed_prizes[draw_id][network] += amount
+                assert draws_unclaimed_prizes[draw_id] >= 0, draw
+                assert draws_network_unclaimed_prizes[draw_id][network] >= 0, draw
 
-    return draws_unclaimed_prizes, network_draws_unclaimed_prizes
+    return draws_unclaimed_prizes, draws_network_unclaimed_prizes
 
-def unique_winners_per_draw(prizes):
-    winners_per_draw = {}
+def get_unique_winners(prizes):
     unique_winners = set()
     for prize in prizes:
         network, address, draw_id, claimable_prizes, claimable_picks, dropped_prizes, dropped_picks = prize
-        if draw_id not in winners_per_draw:
-            winners_per_draw[draw_id] = set()
         if claimable_prizes and sum(claimable_prizes) > 0:
-            # Unique winners over all draws
-            unique_winners.add(address)
-            # Unique winners per draw
-            winners_per_draw[draw_id].add(address)
-
-    # Get amount of unique winners per draw
-    for draw_id in winners_per_draw.keys():
-        winners_per_draw[draw_id] = len(winners_per_draw[draw_id])
-
-    return winners_per_draw, len(unique_winners)
+            unique_winners.add(address.hex())
+    return unique_winners
 
 def print_amount_data(draws_claimable_prizes_amount, draws_unclaimed_prizes_amount, draws_dropped_prizes_amount, draws_dropped_addresses, winners_per_draw, unique_winners):
     f = open("data/draw_amounts.csv", "w+")
@@ -227,26 +209,27 @@ def print_per_prize_data(prize_amounts, prizes, key):
 
     f.close()
 
-def print_unclaimed_prizes_per_network(network_draws_unclaimed_prizes_amount):
+def print_unclaimed_prizes_per_network(draws_network_unclaimed_prizes):
     f = open(f"data/unclaimed_prizes.csv", "w+")
 
     print(f"{'Network':^12}|{'Unclaimed amount':^20}")
     f.write("Network,Unclaimed amount\n")
     print("------------+--------------------")
 
-    total_unclaimed_amount = 0
-    for network, draws in network_draws_unclaimed_prizes_amount.items():
-        # Take the last 60 draws
-        sorted_draws = sorted(draws.items())[-60:]
-        unclaimed_amount = sum(amount for draw, amount in sorted_draws)
-        total_unclaimed_amount += unclaimed_amount
+    total_unclaimed_amount = {}
+    for draw, networks in sorted(draws_network_unclaimed_prizes.items())[-60:]:
+        for network, amount in networks.items():
+            if network not in total_unclaimed_amount:
+                total_unclaimed_amount[network] = 0
+            total_unclaimed_amount[network] += amount
 
-        print(f"{network:^12}|{unclaimed_amount:^20}")
-        f.write(f"{network},{unclaimed_amount}\n")
+    for network, amount in sorted(total_unclaimed_amount.items()):
+        print(f"{network:^12}|{amount:^20}")
+        f.write(f"{network},{amount}\n")
 
     print("------------+--------------------")
-    print(f"{'Total':^12}|{total_unclaimed_amount:^20}")
-    f.write(f"{'Total'},{total_unclaimed_amount}\n")
+    print(f"{'total':^12}|{sum(total_unclaimed_amount.values()):^20}")
+    f.write(f"{'total'},{sum(total_unclaimed_amount.values())}\n")
 
     f.close()
 
@@ -258,17 +241,40 @@ def main():
     networks = list(options["contracts"].keys())
     claim_events = read_claim_events(networks)
 
-    prizes = fetch_all_data(db_mngr)
+    draw_id = 1
 
-    prize_amounts, draws_claimable_prizes, draws_claimable_prizes_amount, draws_dropped_prizes, draws_dropped_prizes_amount, draws_dropped_addresses = accumulate_per_draw(prizes)
-    draws_unclaimed_prizes_amount, network_draws_unclaimed_prizes_amount = find_unclaimed_prizes(prizes, claim_events)
-    winners_per_draw, unique_winners = unique_winners_per_draw(prizes)
+    prize_values = set()
+    claimable_prizes, claimable_prizes_amount, dropped_prizes, dropped_prizes_amount, dropped_addresses = {}, {}, {}, {}, {}
 
-    print_amount_data(draws_claimable_prizes_amount, draws_unclaimed_prizes_amount, draws_dropped_prizes_amount, draws_dropped_addresses, winners_per_draw, unique_winners)
-    print_per_prize_data(prize_amounts, draws_claimable_prizes, "claimable")
-    print_per_prize_data(prize_amounts, draws_dropped_prizes, "dropped")
+    prizes_dict = {}
 
-    print_unclaimed_prizes_per_network(network_draws_unclaimed_prizes_amount)
+    unique_winners = set()
+    winners_per_draw = {}
+
+    while True:
+        print(draw_id)
+        prizes = fetch_prizes(db_mngr, draw_id)
+        if len(prizes) == 0:
+            break
+
+        prize_amounts, claimable_prizes[draw_id], claimable_prizes_amount[draw_id], dropped_prizes[draw_id], dropped_prizes_amount[draw_id], dropped_addresses[draw_id] = accumulate_prizes(prizes)
+        prize_values.update(prize_amounts)
+
+        prizes_dict[draw_id] = build_prizes_dict(prizes)
+
+        winners = get_unique_winners(prizes)
+        unique_winners.update(winners)
+        winners_per_draw[draw_id] = len(winners)
+
+        draw_id += 1
+
+    draws_unclaimed_prizes_amount, draws_network_unclaimed_prizes = find_unclaimed_prizes(prizes_dict, claim_events)
+
+    print_amount_data(claimable_prizes_amount, draws_unclaimed_prizes_amount, dropped_prizes_amount, dropped_addresses, winners_per_draw, len(unique_winners))
+    print_per_prize_data(prize_values, claimable_prizes, "claimable")
+    print_per_prize_data(prize_values, dropped_prizes, "dropped")
+
+    print_unclaimed_prizes_per_network(draws_network_unclaimed_prizes)
 
 if __name__ == "__main__":
     main()
