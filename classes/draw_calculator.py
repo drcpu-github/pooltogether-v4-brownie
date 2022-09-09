@@ -108,7 +108,7 @@ class DrawCalculator:
 
         pick_amount = self.calculate_prize_amount(prize_distribution, number_of_matches)
 
-        if pick_amount["amount"]:
+        if pick_amount and pick_amount["amount"]:
             return pick_amount
 
         return None
