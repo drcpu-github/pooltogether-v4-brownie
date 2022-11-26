@@ -154,6 +154,11 @@ def get_historical_balances(block_number, events, contracts, all_block_numbers=N
         if "from" in transfer["args"] and transfer["args"]["from"] == contracts["reserve"]:
             continue
 
+        # Ignore empty transfers
+        # https://optimistic.etherscan.io/tx/0xda737f3fac9d6eaec69f9f9bfea00e9d975a8986d27b597c91aec24b82072989
+        if transfer["args"]["value"] == 0:
+            continue
+
         # Actual ticket transfers
         sender = transfer["args"]["from"]
         recipient = transfer["args"]["to"]
