@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import sys
 import time
@@ -11,24 +12,28 @@ from eth_abi import encode_abi
 
 from classes.helper import Helper
 
+from utils.logger import setup_stdout_logger
+
 def get_draws_ethereum():
-    print("Getting draws for the Ethereum network")
+    logging.info("Getting draws for the Ethereum network")
     get_draws("ethereum")
 
 def get_draws_polygon():
-    print("Getting draws for the Polygon network")
+    logging.info("Getting draws for the Polygon network")
     get_draws("polygon")
 
 def get_draws_avalanche():
-    print("Getting draws for the Avalanche network")
+    logging.info("Getting draws for the Avalanche network")
     get_draws("avalanche")
     
 def get_draws_optimism():
-    print("Getting draws for the Optimism network")
+    logging.info("Getting draws for the Optimism network")
     get_draws("optimism")
 
 def get_draws(network):
     start = time.perf_counter()
+
+    setup_stdout_logger()
 
     # Read options file
     if not os.path.exists("options.json"):
@@ -56,7 +61,7 @@ def get_draws(network):
     if draw_ids == []:
         return
 
-    print(f"Fetching draw(s) {', '.join(str(draw_id) for draw_id in draw_ids)}")
+    logging.info(f"Fetching draw(s) {', '.join(str(draw_id) for draw_id in draw_ids)}")
 
     first_block_number = options["deploy_data"][network]["first_block_number"]
 
@@ -88,4 +93,4 @@ def get_draws(network):
     f.write(f"{network}: {', '.join(str(draw_id) for draw_id in draw_ids)}\n")
     f.close()
 
-    print(f"Getting draws for {network} took {time.perf_counter() - start} seconds")
+    logging.info(f"Getting draws for {network} took {time.perf_counter() - start} seconds")

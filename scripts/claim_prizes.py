@@ -1,4 +1,5 @@
 import json
+import logging
 import sys
 import time
 
@@ -9,28 +10,32 @@ from web3 import Web3
 from classes.draw_calculator import DrawCalculator
 from classes.helper import Helper
 
+from utils.logger import setup_stdout_logger
+
 def claim_prizes_ethereum():
-    print("Claiming prizes for the ethereum deposits")
+    logging.info("Claiming prizes for the ethereum deposits")
 
     options = json.loads(open("options.json").read())
 
     claim_prizes(options, "ethereum")
 
 def claim_prizes_polygon():
-    print("Claiming prizes for the polygon deposits")
+    logging.info("Claiming prizes for the polygon deposits")
 
     options = json.loads(open("options.json").read())
 
     claim_prizes(options, "polygon")
 
 def claim_prizes_avalanche():
-    print("Claiming prizes for the avalanche deposits")
+    logging.info("Claiming prizes for the avalanche deposits")
 
     options = json.loads(open("options.json").read())
 
     claim_prizes(options, "avalanche")
 
 def claim_prizes(options, network):
+    setup_stdout_logger()
+
     options = json.loads(open("options.json").read())
 
     # Fetch newest available draw id
@@ -51,12 +56,12 @@ def claim_prizes(options, network):
     accounts.add(config["wallets"]["from_key"])
     claiming_account = accounts[0]
     claiming_account_str = f"{claiming_account}"
-    print(f"Claiming prizes using account {claiming_account_str}")
+    logging.info(f"Claiming prizes using account {claiming_account_str}")
 
     helper = Helper()
 
     for account in options["config"]["addresses"]:
-        print(f"Claiming prizes for account {account}")
+        logging.info(f"Claiming prizes for account {account}")
 
         # Fetch prizes from database for account and network
         draws = helper.get_prizes(options["config"], network, account)
@@ -75,9 +80,9 @@ def claim_prizes(options, network):
                     unclaimed_draws.append(draw)
                     unclaimed_draw_ids.append(draw["draw_id"])
                 else:
-                    print(f"Already claimed prizes for draw id {draw['draw_id']} for account {account}")
+                    logging.info(f"Already claimed prizes for draw id {draw['draw_id']} for account {account}")
 
-        print(f"Creating claim for draws {unclaimed_draw_ids}")
+        logging.info(f"Creating claim for draws {unclaimed_draw_ids}")
 
         # Create claims
         claim = draw_calculator.prepare_claims(
@@ -89,7 +94,7 @@ def claim_prizes(options, network):
         try:
             estimated_gas = mock_prize_distributor_contract.functions.claim(Web3.toChecksumAddress(account), unclaimed_draw_ids, claim["encoded_winning_pick_indices"]).estimateGas({"from": claiming_account_str})
         except ValueError as e:
-            print(f"Will fail to claim for draws {unclaimed_draw_ids}: {e}")
+            logging.warning(f"Will fail to claim for draws {unclaimed_draw_ids}: {e}")
             sys.exit(1)
 
         # Claim

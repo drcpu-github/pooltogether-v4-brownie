@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import sys
 import time
@@ -10,24 +11,28 @@ from dotenv import load_dotenv
 from classes.draw_calculator import DrawCalculator
 from classes.helper import Helper
 
+from utils.logger import setup_stdout_logger
+
 def calculate_prizes_ethereum():
-    print("Calculating prizes for the Ethereum depositors")
+    logging.info("Calculating prizes for the Ethereum depositors")
     calculate_prizes("ethereum")
 
 def calculate_prizes_polygon():
-    print("Calculating prizes for the Polygon depositors")
+    logging.info("Calculating prizes for the Polygon depositors")
     calculate_prizes("polygon")
 
 def calculate_prizes_avalanche():
-    print("Calculating prizes for the Avalanche depositors")
+    logging.info("Calculating prizes for the Avalanche depositors")
     calculate_prizes("avalanche")
 
 def calculate_prizes_optimism():
-    print("Calculating prizes for the Optimism depositors")
+    logging.info("Calculating prizes for the Optimism depositors")
     calculate_prizes("optimism")
 
 def calculate_prizes(network):
     start = time.perf_counter()
+
+    setup_stdout_logger()
 
     # Read options file
     if not os.path.exists("options.json"):
@@ -67,7 +72,7 @@ def calculate_prizes(network):
     assert oldest_draw <= draw_ids[0], f"Cannot calculate prizes for a draw older than {oldest_draw}"
     assert newest_draw >= draw_ids[-1], f"Cannot calculate prizes for a draw younger than {newest_draw}"
 
-    print(f"Calculating prizes for draws {', '.join(str(draw_id) for draw_id in draw_ids)}")
+    logging.info(f"Calculating prizes for draws {', '.join(str(draw_id) for draw_id in draw_ids)}")
 
     all_accounts = set()
     for draw_id in draw_ids:
@@ -111,7 +116,7 @@ def calculate_prizes(network):
 
     normalized_balances_dict = {}
     for i, account in enumerate(all_accounts):
-        print(f"Fetching normalized balances for account {account} ({i + 1} / {len(all_accounts)})")
+        logging.info(f"Fetching normalized balances for account {account} ({i + 1} / {len(all_accounts)})")
 
         normalized_balances_dict[account] = {}
 
@@ -123,10 +128,10 @@ def calculate_prizes(network):
             except ValueError:
                 retries += 1
                 if retries < maximum_retries:
-                    print(f"Failed to fetch normalized balances for {account}, retrying in 5 seconds")
+                    logging.info(f"Failed to fetch normalized balances for {account}, retrying in 5 seconds")
                     time.sleep(5)
                 else:
-                    print(f"Failed to fetch normalized balances for {account}, quitting after {maximum_retries} retries")
+                    logging.info(f"Failed to fetch normalized balances for {account}, quitting after {maximum_retries} retries")
 
         for draw_id, normalized_balance in zip(draw_ids, normalized_balances):
             normalized_balances_dict[account][draw_id] = normalized_balance
@@ -137,7 +142,7 @@ def calculate_prizes(network):
 
     average_balances_dict = {}
     for i, account in enumerate(all_accounts):
-        print(f"Fetching average balances for account {account} ({i + 1} / {len(all_accounts)})")
+        logging.info(f"Fetching average balances for account {account} ({i + 1} / {len(all_accounts)})")
 
         average_balances_dict[account] = {}
 
@@ -149,10 +154,10 @@ def calculate_prizes(network):
             except ValueError:
                 retries += 1
                 if retries < maximum_retries:
-                    print(f"Failed to fetch average balances for {account}, retrying in 5 seconds")
+                    logging.warning(f"Failed to fetch average balances for {account}, retrying in 5 seconds")
                     time.sleep(5)
                 else:
-                    print(f"Failed to fetch average balances for {account}, quitting after {maximum_retries} retries")
+                    logging.error(f"Failed to fetch average balances for {account}, quitting after {maximum_retries} retries")
 
         for draw_id, average_balance in zip(draw_ids, average_balances):
             average_balances_dict[account][draw_id] = average_balance
@@ -162,7 +167,7 @@ def calculate_prizes(network):
 
     prizes_dict = {}
     for i, account in enumerate(all_accounts):
-        print(f"Calculating picks for account {account} ({i + 1} / {len(all_accounts)})")
+        logging.info(f"Calculating picks for account {account} ({i + 1} / {len(all_accounts)})")
 
         prizes_dict[account] = []
         for draw_id in draw_ids:
@@ -184,4 +189,4 @@ def calculate_prizes(network):
     f.write(f"{network}: {', '.join(str(draw_id) for draw_id in draw_ids)}\n")
     f.close()
 
-    print(f"Calculating prizes for {network} took {time.perf_counter() - start} seconds")
+    logging.info(f"Calculating prizes for {network} took {time.perf_counter() - start} seconds")

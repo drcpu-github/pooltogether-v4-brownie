@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import pickle
 import time
@@ -9,23 +10,25 @@ from web3.middleware import geth_poa_middleware
 
 from classes.helper import Helper
 
+from utils.logger import setup_stdout_logger
+
 # This function is tailored to fetch iterative events from Alchemy and won't work with another node API provider such as Infura
 def get_events_iteratively(event, from_block, to_block, blocks_per_call=131072):
-    print(f"Fetching {event.event_name} events iteratively from {from_block} to {to_block} limited to {blocks_per_call} blocks")
+    logging.info(f"Fetching {event.event_name} events iteratively from {from_block} to {to_block} limited to {blocks_per_call} blocks")
     events = []
     for block in range(from_block, to_block, blocks_per_call):
         fetch_until = min(to_block, block + blocks_per_call)
-        print(f"Fetching {event.event_name} events for block {block} to {fetch_until} (fetching until block {to_block})")
+        logging.info(f"Fetching {event.event_name} events for block {block} to {fetch_until} (fetching until block {to_block})")
         event_filter = event.createFilter(fromBlock=block, toBlock=fetch_until)
         try:
             events.extend(event_filter.get_all_entries())
         except ValueError as err:
             if "message" in err.args[0] and "Log response size exceeded." in err.args[0]["message"]:
-                print(f"Could not fetch all events at once, falling back to iterative event fetching")
+                logging.info(f"Could not fetch all events at once, falling back to iterative event fetching")
                 events.extend(get_events_iteratively(event, block, to_block, blocks_per_call=int(blocks_per_call / 2)))
                 break
             elif "message" in err.args[0] and "requested too many blocks" in err.args[0]["message"]:
-                print(f"Could not fetch all events at once, falling back to iterative event fetching")
+                logging.info(f"Could not fetch all events at once, falling back to iterative event fetching")
                 events.extend(get_events_iteratively(event, block, to_block, blocks_per_call=int(blocks_per_call / 2)))
                 break
             else:
@@ -35,16 +38,16 @@ def get_events_iteratively(event, from_block, to_block, blocks_per_call=131072):
 
 # This function is tailored to fetch iterative events from Alchemy and won't work with another node API provider such as Infura
 def get_events(event, from_block, to_block):
-    print(f"Fetching {event.event_name} events from block {from_block} to block {to_block}")
+    logging.info(f"Fetching {event.event_name} events from block {from_block} to block {to_block}")
     event_filter = event.createFilter(fromBlock=from_block, toBlock=to_block)
     try:
         return event_filter.get_all_entries()
     except ValueError as err:
         if "message" in err.args[0] and "Log response size exceeded." in err.args[0]["message"]:
-            print(f"Could not fetch all {event.event_name} events at once, falling back to iterative event fetching")
+            logging.info(f"Could not fetch all {event.event_name} events at once, falling back to iterative event fetching")
             return get_events_iteratively(event, from_block, to_block)
         elif "message" in err.args[0] and "requested too many blocks" in err.args[0]["message"]:
-            print(f"Could not fetch all {event.event_name} events at once, falling back to iterative event fetching")
+            logging.info(f"Could not fetch all {event.event_name} events at once, falling back to iterative event fetching")
             return get_events_iteratively(event, from_block, to_block)
         else:
             raise
@@ -76,6 +79,8 @@ def get_contracts(w3_provider, options):
     return yield_source_prize_pool_contract, ticket_contract, prize_distributor_contract, draw_calculator_timelock_contract
 
 def main():
+    setup_stdout_logger()
+
     if not os.path.exists("events"):
         os.mkdir("events")
 
@@ -87,7 +92,7 @@ def main():
 
     networks = list(options["contracts"].keys())
     for network in networks:
-        print(f"Fetching events for {network}")
+        logging.info(f"Fetching events for {network}")
 
         provider = helper.setup_web3_provider(network)
 
@@ -145,7 +150,7 @@ def main():
             claimeddraw_event_list = get_events(prize_distributor_contract.events.ClaimedDraw, first_block_number, last_block_number)
         pickle.dump(claimeddraw_event_list, open(claimeddraw_events_file, "wb"))
 
-        print("")
+        logging.info("")
 
 if __name__ == "__main__":
     main()

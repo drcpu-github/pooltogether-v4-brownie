@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import requests
 
@@ -11,7 +12,7 @@ from classes.database_manager import DatabaseManager
 
 class Helper:
     def insert_draws(self, options, draws):
-        print("Saving draws to database")
+        logging.info("Saving draws to database")
 
         sql = """
             INSERT INTO draws (
@@ -30,7 +31,7 @@ class Helper:
         db_mngr.terminate(verbose=False)
 
     def insert_prize_distributions(self, options, network, prize_distributions_dict):
-        print("Saving prize distributions to database")
+        logging.info("Saving prize distributions to database")
 
         prize_distributions = []
         for draw_id, prize_distribution in prize_distributions_dict.items():
@@ -68,7 +69,7 @@ class Helper:
         db_mngr.terminate(verbose=False)
 
     def insert_prizes(self, options, network, prizes_dict):
-        print("Saving prizes to database")
+        logging.info("Saving prizes to database")
 
         sql_prizes = []
         for user, prizes in prizes_dict.items():
@@ -103,7 +104,7 @@ class Helper:
         db_mngr.terminate(verbose=False)
 
     def get_prizes(self, options, network, address):
-        print("Fetching prizes from database")
+        logging.info("Fetching prizes from database")
 
         sql = """
             SELECT network, address, draw_id, claimable_prizes, claimable_picks
@@ -130,7 +131,7 @@ class Helper:
         return draw_prizes
 
     def setup_web3_provider(self, network):
-        print("Setting up web3 provider")
+        logging.info("Setting up web3 provider")
 
         if network == "ethereum":
             WEB3_ETHEREUM_ALCHEMY = os.getenv("WEB3_ETHEREUM_ALCHEMY")
@@ -307,7 +308,7 @@ class Helper:
         }
 
     def binary_search_block_at_time(self, w3_provider, start_block_number, unixtime):
-        print(f"Binary searching blockchain for timestamp {unixtime}")
+        logging.info(f"Binary searching blockchain for timestamp {unixtime}")
 
         # Stop block
         stop_block_data = get_block_data(w3_provider)

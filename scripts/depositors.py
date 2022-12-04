@@ -1,6 +1,7 @@
 import calendar
 import datetime
 import json
+import logging
 import optparse
 import os
 import pickle
@@ -14,6 +15,8 @@ from web3.middleware import geth_poa_middleware
 
 from classes.database_manager import DatabaseManager
 from classes.helper import Helper
+
+from utils.logger import setup_stdout_logger
 
 def read_event_files(networks):
     events = {}
@@ -58,7 +61,7 @@ def get_blocks_for_draws(w3_provider, options, network):
     return draw_ids, block_numbers
 
 def get_historical_balances(block_number, events, contracts, all_block_numbers=None):
-    print(f"Processing events up to block {block_number}")
+    logging.info(f"Processing events up to block {block_number}")
 
     warn_events_outdated = True
 
@@ -199,10 +202,10 @@ def get_historical_balances(block_number, events, contracts, all_block_numbers=N
             eligible_balances[holder] = balances[holder][0]
 
     if len(balances) > len(eligible_balances):
-        print(f"Reduced balance list from {len(balances)} addresses to {len(eligible_balances)} addresses")
+        logging.info(f"Reduced balance list from {len(balances)} addresses to {len(eligible_balances)} addresses")
 
     if warn_events_outdated:
-        print(f"WARNING: No events found with a block number bigger than {block_number}, maybe the downloaded events are outdated!?")
+        logging.warning(f"No events found with a block number bigger than {block_number}, maybe the downloaded events are outdated!?")
 
     return eligible_balances, delegations
 
@@ -215,6 +218,8 @@ def main():
     if (options.timestamp == None and options.draws == None) or (options.timestamp != None and options.draws != None):
         sys.stderr.write("Need either '--timestamp <YY-MM-DDTHH:MM:SS>' or '--draws' supplied on the command line")
         sys.exit(1)
+
+    setup_stdout_logger()
 
     if not os.path.exists("balances"):
         os.mkdir("balances")
@@ -239,7 +244,7 @@ def main():
             first_block_number = json_options["contracts"][network]["first_block_number"]
             block_number = helper.do_eth_block_request(network, options.timestamp)
 
-        print(f"Creating historical balances for {options.timestamp}")
+        logging.info(f"Creating historical balances for {options.timestamp}")
 
         # Create file name
         holders_file_name = f"holders_{options.timestamp.replace(':', '-')}.json"
@@ -273,7 +278,7 @@ def main():
                 if os.path.exists(os.path.join("balances", holders_file_name)):
                     continue
 
-                print(f"Creating historical balances for draw {draw_id} on network {network}")
+                logging.info(f"Creating historical balances for draw {draw_id} on network {network}")
                 calculated = True
 
                 if draw_id not in balances:
@@ -290,7 +295,7 @@ def main():
                 balances[draw_id]["delegations"][network] = list(delegations.values())
 
             if calculated:
-                print("")
+                logging.info("")
 
         # Dump holders and delegatees
         for draw_id in balances.keys():
