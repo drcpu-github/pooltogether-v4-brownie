@@ -133,18 +133,18 @@ class Helper:
         print("Setting up web3 provider")
 
         if network == "ethereum":
-            WEB3_ALCHEMY_ETHEREUM_PROJECT_ID = os.getenv("WEB3_ALCHEMY_ETHEREUM_PROJECT_ID")
-            w3_provider = Web3(Web3.HTTPProvider(f"https://eth-mainnet.alchemyapi.io/v2/{WEB3_ALCHEMY_ETHEREUM_PROJECT_ID}"))
+            WEB3_ETHEREUM_ALCHEMY = os.getenv("WEB3_ETHEREUM_ALCHEMY")
+            w3_provider = Web3(Web3.HTTPProvider(f"https://eth-mainnet.alchemyapi.io/v2/{WEB3_ETHEREUM_ALCHEMY}"))
         elif network == "polygon":
-            WEB3_ALCHEMY_POLYGON_PROJECT_ID = os.getenv("WEB3_ALCHEMY_POLYGON_PROJECT_ID")
-            w3_provider = Web3(Web3.HTTPProvider(f"https://polygon-mainnet.g.alchemy.com/v2/{WEB3_ALCHEMY_POLYGON_PROJECT_ID}"))
+            WEB3_POLYGON_ALCHEMY = os.getenv("WEB3_POLYGON_ALCHEMY")
+            w3_provider = Web3(Web3.HTTPProvider(f"https://polygon-mainnet.g.alchemy.com/v2/{WEB3_POLYGON_ALCHEMY}"))
             w3_provider.middleware_onion.inject(geth_poa_middleware, layer=0)
         elif network == "avalanche":
             w3_provider = Web3(Web3.HTTPProvider(f"https://api.avax.network/ext/bc/C/rpc"))
             w3_provider.middleware_onion.inject(geth_poa_middleware, layer=0)
         elif network == "optimism":
-            WEB3_ALCHEMY_PROJECT_ID = os.getenv("WEB3_ALCHEMY_PROJECT_ID")
-            w3_provider = Web3(Web3.HTTPProvider(f"https://opt-mainnet.g.alchemy.com/v2/{WEB3_ALCHEMY_PROJECT_ID}"))
+            WEB3_OPTIMISM_ALCHEMY = os.getenv("WEB3_OPTIMISM_ALCHEMY")
+            w3_provider = Web3(Web3.HTTPProvider(f"https://opt-mainnet.g.alchemy.com/v2/{WEB3_OPTIMISM_ALCHEMY}"))
             w3_provider.middleware_onion.inject(geth_poa_middleware, layer=0)
         return w3_provider
 

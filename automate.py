@@ -16,7 +16,7 @@ def execute_command(command, output_file):
 
 def main():
     networks = {
-        "Ethereum": "mainnet-alchemy",
+        "Ethereum": "ethereum-alchemy",
         "Polygon": "polygon-mainnet-alchemy",
         "Avalanche": "avalanche-mainnet",
         "Optimism": "optimism-mainnet",

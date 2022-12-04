@@ -12,4 +12,6 @@ compiler:
             - '@pooltogether/yield-source-interface=pooltogether/yield-source-interface@1.3.0'
 dotenv: .env
 wallets:
-    from_key: ${PRIVATE_KEY}
+    from_key_goerli: ${PRIVATE_KEY_GOERLI}
+    from_key_ethereum: ${PRIVATE_KEY_ETHEREUM}
+    from_key_polygon: ${PRIVATE_KEY_POLYGON}
