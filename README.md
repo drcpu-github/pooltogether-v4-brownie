@@ -119,7 +119,7 @@ brownie run scripts/calculate_prizes.py <calculate_prizes_ethereum | calculate_p
 
 ## Claim prizes
 
-Assuming you have pre-calculated prizes for a(n) (set of) account(s) using the `calculate_prizes.py` script, the `claim_prizes.py` script allows to claim prizes for multiple draws in one transaction. Since this script will actually claim prizes, you need to supply an account. Brownie allows for different methods to achieve this, but personally I specify a `PRIVATE_KEY` environment variable in my .env file and load this through the `brownie-config.yaml` file.
+Assuming you have pre-calculated prizes for a(n) (set of) account(s) using the `calculate_prizes.py` script, the `claim_prizes.py` script allows to claim prizes for multiple draws in one transaction. Since this script will actually claim prizes, you need to supply an account. Brownie allows for different methods to achieve this, but personally I specify environment variables called `PRIVATE_KEY_<network>` in my .env file and load this through the `brownie-config.yaml` file.
 
 ```
 brownie run scripts/claim_prizes.py --network <network-name, e.g. polygon-mainnet-alchemy>
