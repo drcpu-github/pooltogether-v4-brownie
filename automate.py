@@ -31,7 +31,7 @@ def main():
     timestamp = datetime.datetime.now().strftime("%F")
 
     print("Fetching events")
-    execute_command(["python3", "-m", "utils.get_events"], f"logs/events_{timestamp}.log")
+    execute_command(["python3", "-m", "scripts.get_events"], f"logs/events_{timestamp}.log")
 
     for network, rpc in networks.items():
         print(f"Fetching draws for {network}")
@@ -52,7 +52,7 @@ def main():
     os.remove(".draws_fetched")
 
     print("Calculating depositors")
-    execute_command(["python3", "-m", "utils.depositors", "--draws"], f"logs/depositors_{timestamp}.log")
+    execute_command(["python3", "-m", "scripts.depositors", "--draws"], f"logs/depositors_{timestamp}.log")
 
     for network, rpc in networks.items():
         print(f"Calculating prizes for {network}")
