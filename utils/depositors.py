@@ -28,25 +28,6 @@ def read_event_files(networks):
 
     return events
 
-def setup_web3_providers():
-    print("Setting up web3 providers")
-
-    WEB3_ALCHEMY_ETHEREUM_PROJECT_ID = os.getenv("WEB3_ALCHEMY_ETHEREUM_PROJECT_ID")
-    w3_ethereum = Web3(Web3.HTTPProvider(f"https://eth-mainnet.alchemyapi.io/v2/{WEB3_ALCHEMY_ETHEREUM_PROJECT_ID}"))
-
-    WEB3_ALCHEMY_POLYGON_PROJECT_ID = os.getenv("WEB3_ALCHEMY_POLYGON_PROJECT_ID")
-    w3_polygon = Web3(Web3.HTTPProvider(f"https://polygon-mainnet.g.alchemy.com/v2/{WEB3_ALCHEMY_POLYGON_PROJECT_ID}"))
-    w3_polygon.middleware_onion.inject(geth_poa_middleware, layer=0)
-    
-    w3_optimism = Web3(Web3.HTTPProvider(f"https://opt-mainnet.g.alchemy.com/v2/{WEB3_ALCHEMY_POLYGON_PROJECT_ID}"))
-    w3_optimism.middleware_onion.inject(geth_poa_middleware, layer=0)
-
-    return {
-        "ethereum": w3_ethereum, 
-        "polygon": w3_polygon,
-        "optimism": w3_optimism,
-    }
-
 def get_block_data(w3_provider, block_number=None):
     # Fetch current block
     if not block_number:
