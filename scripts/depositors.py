@@ -1,13 +1,9 @@
-import calendar
-import datetime
 import json
 import logging
 import optparse
 import os
 import pickle
-import subprocess
 import sys
-import time
 
 from dotenv import load_dotenv
 from web3 import Web3
