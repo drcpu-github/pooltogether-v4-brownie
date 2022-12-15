@@ -17,9 +17,9 @@ def execute_command(command, output_file):
 def main():
     networks = {
         "Ethereum": "ethereum-alchemy",
-        "Polygon": "polygon-mainnet-alchemy",
-        "Avalanche": "avalanche-mainnet",
-        "Optimism": "optimism-mainnet",
+        "Polygon": "polygon-alchemy",
+        "Avalanche": "avalanche",
+        "Optimism": "optimism-alchemy",
     }
 
     if os.path.exists(".draws_calculated"):
