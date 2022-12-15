@@ -103,6 +103,42 @@ class Helper:
         db_mngr.sql_execute_many(sql, sql_prizes)
         db_mngr.terminate(verbose=False)
 
+    def get_prize_distribution(self, options, network, draw_id):
+        sql = """
+            SELECT
+                bit_range_size,
+                match_cardinality,
+                start_timestamp_offset,
+                end_timestamp_offset,
+                max_picks_per_user,
+                expiry_duration,
+                number_of_picks,
+                tiers,
+                prize
+            FROM
+                prize_distributions
+            WHERE
+                network='%s'
+            AND
+                draw_id=%s
+        """ % (network, draw_id)
+
+        db_mngr = DatabaseManager(options["user"], options["database"], options["password"])
+        prize_distribution = db_mngr.sql_return_one(sql)
+        db_mngr.terminate(verbose=False)
+
+        return {
+            "bit_range_size": prize_distribution[0],
+            "match_cardinality": prize_distribution[1],
+            "start_timestamp_offset": prize_distribution[2],
+            "end_timestamp_offset": prize_distribution[3],
+            "max_picks_per_user": prize_distribution[4],
+            "expiry_duration": prize_distribution[5],
+            "number_of_picks": prize_distribution[6],
+            "tiers": prize_distribution[7],
+            "prize": prize_distribution[8],
+        }
+
     def get_prizes(self, options, network, address):
         logging.info("Fetching prizes from database")
 
@@ -129,6 +165,24 @@ class Helper:
             })
 
         return draw_prizes
+
+    def get_account_balances(self, options, network, draw_id):
+        sql = """
+            SELECT
+                address,
+                normalized_balance,
+                average_balance
+            FROM
+                prizes
+            WHERE
+                network='%s'
+            AND
+                draw_id=%s
+        """ % (network, draw_id)
+
+        db_mngr = DatabaseManager(options["user"], options["database"], options["password"])
+
+        return db_mngr.sql_return_all(sql)
 
     def setup_web3_provider(self, network):
         logging.info("Setting up web3 provider")
@@ -191,21 +245,23 @@ class Helper:
 
         return draw_ids_to_fetch
 
-    def find_draws_to_calculate(self, options, draw_ids, network):
+    def find_draws_to_calculate(self, options, draw_ids, network, recalculate=False):
         draw_ids_to_calculate = draw_ids
 
-        # First check the draw ids for which we already calculated prizes
         db_mngr = DatabaseManager(options["user"], options["database"], options["password"])
-        sql = """
-            SELECT
-                DISTINCT draw_id
-            FROM prizes
-            WHERE
-                network='%s'
-        """ % network
-        prizes = db_mngr.sql_return_all(sql)
-        draws_already_calculated = [prize[0] for prize in prizes]
-        draw_ids_to_calculate = list(set(draw_ids_to_calculate) - set(draws_already_calculated))
+
+        # First check the draw ids for which we already calculated prizes
+        if not recalculate:
+            sql = """
+                SELECT
+                    DISTINCT draw_id
+                FROM prizes
+                WHERE
+                    network='%s'
+            """ % network
+            prizes = db_mngr.sql_return_all(sql)
+            draws_already_calculated = [prize[0] for prize in prizes]
+            draw_ids_to_calculate = list(set(draw_ids_to_calculate) - set(draws_already_calculated))
 
         sql = """
             SELECT
