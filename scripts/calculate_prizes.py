@@ -112,7 +112,7 @@ def calculate_prizes(network):
             "prize": prize,
         }
 
-# Fetch normalized balances
+# Fetch normalized balances and average balances
     normalized_balances_dict = {}
     average_balances_dict = {}
 
