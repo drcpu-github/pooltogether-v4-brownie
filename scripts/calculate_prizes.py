@@ -4,6 +4,8 @@ import os
 import sys
 import time
 
+from multicall import Call, Multicall
+
 from brownie import Contract
 
 from dotenv import load_dotenv
@@ -110,57 +112,40 @@ def calculate_prizes(network):
             "prize": prize,
         }
 
-    # Fetch normalized balances
-    abi_calculator = json.loads(open("abis/DrawCalculatorAbi.json").read())
-    draw_calculator_contract = Contract.from_abi("DrawCalculator", options["contracts"][network]["draw_calculator"], abi_calculator)
-
+# Fetch normalized balances
     normalized_balances_dict = {}
-    for i, account in enumerate(all_accounts):
-        logging.info(f"Fetching normalized balances for account {account} ({i + 1} / {len(all_accounts)})")
-
-        normalized_balances_dict[account] = {}
-
-        retries = 0
-        while True:
-            try:
-                normalized_balances = draw_calculator_contract.getNormalizedBalancesForDrawIds(account, draw_ids)
-                break
-            except ValueError:
-                retries += 1
-                if retries < maximum_retries:
-                    logging.info(f"Failed to fetch normalized balances for {account}, retrying in 5 seconds")
-                    time.sleep(5)
-                else:
-                    logging.info(f"Failed to fetch normalized balances for {account}, quitting after {maximum_retries} retries")
-
-        for draw_id, normalized_balance in zip(draw_ids, normalized_balances):
-            normalized_balances_dict[account][draw_id] = normalized_balance
-
-    # Fetch average balances between draws
-    abi_ticket = json.loads(open("abis/TicketAbi.json").read())
-    ticket_contract = Contract.from_abi("Ticket", options["contracts"][network]["ticket"], abi_ticket)
-
     average_balances_dict = {}
-    for i, account in enumerate(all_accounts):
-        logging.info(f"Fetching average balances for account {account} ({i + 1} / {len(all_accounts)})")
 
-        average_balances_dict[account] = {}
+    callsList = []
 
+    batches = createBatches(all_accounts, 3) # NUMBER OF ADDRESSES BY BATCH
+   
+    total = 0
+    for batch in batches:
+        total += len(batch)
+        logging.info(f"Batching addresses : {total} / {len(all_accounts)}")
+        for i, account in enumerate(batch):
+            normalized_balances_dict[account] = {}
+            average_balances_dict[account] = {}
+            callsList.append(Call(options["contracts"][network]["draw_calculator"], ['getNormalizedBalancesForDrawIds(address,uint32[])(uint256[])', account, draw_ids], [['normalizedBalance'+str(i), None]]))
+            callsList.append(Call(options["contracts"][network]["ticket"], ['getAverageBalancesBetween(address,uint64[],uint64[])(uint256[])', account, draw_start_times, draw_stop_times], [['averageBalance'+str(i), None]]))
         retries = 0
-        while True:
+        while retries < 5: 
             try:
-                average_balances = ticket_contract.getAverageBalancesBetween(account, draw_start_times, draw_stop_times)
+                balances = Multicall(callsList)()
                 break
-            except ValueError:
+            except Exception:        
+                logging.info(f"Failed to fetch normalized and average balances for an account")
                 retries += 1
-                if retries < maximum_retries:
-                    logging.warning(f"Failed to fetch average balances for {account}, retrying in 5 seconds")
-                    time.sleep(5)
-                else:
-                    logging.error(f"Failed to fetch average balances for {account}, quitting after {maximum_retries} retries")
+                time.sleep(5)
 
-        for draw_id, average_balance in zip(draw_ids, average_balances):
-            average_balances_dict[account][draw_id] = average_balance
+
+        for i, account in enumerate(batch):        
+            for draw_id, normalized_balance in zip(draw_ids, balances.get('normalizedBalance'+str(i))):
+                normalized_balances_dict[account][draw_id] = normalized_balance
+
+            for draw_id, average_balance in zip(draw_ids, balances.get('averageBalance'+str(i))):
+                average_balances_dict[account][draw_id] = average_balance
 
     # Calculate picks and prizes
     draw_calculator = DrawCalculator(network)
@@ -190,3 +175,8 @@ def calculate_prizes(network):
     f.close()
 
     logging.info(f"Calculating prizes for {network} took {time.perf_counter() - start} seconds")
+
+def createBatches(list_a, chunk_size):
+  for i in range(0, len(list_a), chunk_size):
+    yield list_a[i:i + chunk_size]
+       
