@@ -117,8 +117,10 @@ def calculate_prizes(network):
     average_balances_dict = {}
 
     callsList = []
-
-    batches = createBatches(all_accounts, 3) # NUMBER OF ADDRESSES BY BATCH
+    if (network == "avalanche") : #Quick fix : need to use Alchemy Avalanche RPC
+        batches = createBatches(all_accounts, 1) 
+    else :
+        batches = createBatches(all_accounts, 400) # NUMBER OF ADDRESSES BY BATCH
    
     total = 0
     for batch in batches:
@@ -146,6 +148,7 @@ def calculate_prizes(network):
 
             for draw_id, average_balance in zip(draw_ids, balances.get('averageBalance'+str(i))):
                 average_balances_dict[account][draw_id] = average_balance
+        callsList.clear()
 
     # Calculate picks and prizes
     draw_calculator = DrawCalculator(network)
