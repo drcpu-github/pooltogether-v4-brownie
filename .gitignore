@@ -1,0 +1,17 @@
+__pycache__
+.env
+.history
+.hypothesis/
+build/
+contracts/
+events/
+interfaces/
+logs/
+plots/
+reports/
+
+holders*
+options*
+prizes*
+
+.draws_calculated
