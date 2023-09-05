@@ -1,3 +1,5 @@
+# This repository has been archived and is not maintained anymore
+
 # Intro
 This repository contains a set of useful scripts to interact with the PoolTogether v4 smart contracts. It contains a Python3 port of the [DrawCalculator NPM package](https://www.npmjs.com/package/@pooltogether/draw-calculator-js) and is meant to be used in combination with Brownie.
 
